@@ -1,0 +1,7 @@
+FFVideoSource("")
+c=Crop(0,20,-0,-22)
+fc=FillMargins(c,0,2,0,0)
+MergeChroma(c,fc,1)
+FillMargins(0,1,0,0)
+db=f3kdb(range=15,y=72,cb=0,cr=0,grainy=10,grainc=0,dynamic_grain=false)
+Trim(db,0,238)+Trim(239,0)
