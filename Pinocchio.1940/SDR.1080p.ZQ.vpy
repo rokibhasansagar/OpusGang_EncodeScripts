@@ -3,17 +3,15 @@ import awsmfunc as awsm
 import kagefunc as kgf
 import fvsfunc as fvf
 import adptvgrnMod as agm
-import havsfunc as hvf
 import vsTAAmbk as taa
 import debandshit as dbs
-import lvsfunc as lvf
 from havsfunc import *
 from vsutil import *
 from rekt import *
 from bandmask import *
 core = vs.core
 
-src = core.ffms2.Source(r'Pinocchio 1940 1080p Remux AVC FLAC 5.1.mkv')
+src = core.ffms2.Source(r'/mnt/encoding/Sources/Pinocchio/Pinocchio 1940 1080p Remux AVC FLAC 5.1.mkv')
 src = core.std.Crop(src, left = 234, right = 234, top = 2)
 
 b16 = fvf.Depth(src, 16)
