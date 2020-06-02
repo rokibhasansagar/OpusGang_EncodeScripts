@@ -386,7 +386,7 @@ snf = awf.rfs(snf, ana, "[147045 147104]")
 
 # banding
 dbn = src.neo_f3kdb.Deband(y=72, cb=64, cr=64, grainy=0, grainc=0, output_depth=16, sample_mode=4)
-msk = kgf.retinex_edgemask(src).std.Maximum().std.Inflate()
+msk = kgf.retinex_edgemask(src).std.Expr("x 10000 > x 10 * x ?").std.Maximum().std.Inflate()
 dbn = dbn.std.MaskedMerge(src, msk)
 dbn = adptvgrnMod(dbn, static=True, grain_chroma=True, strength=.4, seed=7)
 snf = awf.rfs(snf, dbn, "[57480 58055] [26558 26609]")
@@ -400,8 +400,8 @@ snf = awf.rfs(snf, dbn, "[31406 31513] [90272 90511] [96541 96631] [117456 11753
 # misplaced frame
 snf = snf.std.FreezeFrames(45771, 45771, 45770)
 
-out = depth(snf, 8)
+snf = adptvgrnMod(snf, strength=.1, static=True, luma_scaling=100, seed=8)
 
-out = adptvgrnMod(out, strength=.1, static=True, luma_scaling=100, seed=8)
+out = depth(snf, 8)
 
 out.set_output()
