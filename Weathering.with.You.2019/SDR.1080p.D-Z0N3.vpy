@@ -271,6 +271,9 @@ ana = rektaa(src, 1426, 748, 436, aatype=2, opencl=True, mtype=2)
 ana = rekt(snf, ana, 1426, 748, 436)
 snf = awf.rfs(snf, ana, "[56964 57023]")
 
+ana = rektaa(src, 1142, 330, 732, 570, aatype=2)
+snf = awf.rfs(snf, ana, "[60586 60645]")
+
 ana = rektaa(src, 1006, 674, 516, 2, aatype=3, opencl=True, mtype=2)
 snf = awf.rfs(snf, ana, "[72090 72149]")
 
