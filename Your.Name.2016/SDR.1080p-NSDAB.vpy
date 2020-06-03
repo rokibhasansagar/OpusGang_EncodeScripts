@@ -463,7 +463,7 @@ sf = awf.rfs(sf, aa, "[75362 75448]")
 
 clip = core.resize.Point(sf, matrix_in_s="709", format=vs.RGBS)
 cubed = core.timecube.Cube(clip, "/home/aicha/Encoding/Your Name/tint1.1.cube")
-cs = core.resize.Point(cubed, matrix=1, format=vs.YUV420P16, dither_type="error_diffusion")
+sf = core.resize.Point(cubed, matrix=1, format=vs.YUV420P16, dither_type="error_diffusion")
 
 uhd = core.ffms2.Source("/home/aicha/Encoding/Your Name/yournameuhdsegment1.mkv").cf.ContinuityFixer(2, 2, 2, 2, 20)
 uhd = core.std.AssumeFPS(uhd, fpsnum=24).std.Trim(46, 213)
