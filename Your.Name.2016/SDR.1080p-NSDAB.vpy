@@ -445,6 +445,9 @@ aa = hvf.FineDehalo(aa, rx=1, ry=1)
 aa = core.std.MaskedMerge(bb, aa, mask)
 sf = awf.rfs(sf, aa, "[75362 75448]")
 
+aa = rektaa(src, 740, 564, 924, 476, aatype=2)
+sf = awf.rfs(sf, aa, "[141236 141265]")
+
 # NATURE
 # [48822 49073] [50604 50687] [50808 51017] [51867 51986] [103295 103369]
 
