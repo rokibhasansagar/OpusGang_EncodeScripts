@@ -7,12 +7,17 @@ import kagefunc as kgf
 from rekt import *
 from fixbrdrs import *
 from adptvgrnMod import *
+from functools import partial
 
 src = core.ffms2.Source("The.World.Of.Kanako.2014.1080p.BluRay.REMUX.AVC.DTS-HD.MA5.1-MC.mkv").std.Crop(top=138, bottom=138)
 
 src = vsu.depth(src, 16)
 
-src = rektlvls(src, rownum=[0, 1, 2, 3, 4, 5, 797, 800, 801, 802], rowval=[13, -8, 6, -1, -1, 2, 2, 5, -9, 13], prot_val=[10, 210])
+def evalf(n, f, clip):
+    return rektlvls(clip, rownum=[0, 1, 2, 3, 4, 5, 797, 800, 801, 802], rowval=[13, -8, 6, -1, -1, 2, 2, 5, -9, 13], prot_val=[f.props.PlaneStatsMin >> 8 + 1, f.props.PlaneStatsMax >> 8 - 2])
+
+src = src.std.PlaneStats()
+src = src.std.FrameEval(partial(evalf, clip=src), src)
 src = awf.fb(src, bottom=1, planes=[1, 2], top=1)
 src = fixbrdrs(src, bottom=True)
 
@@ -35,6 +40,6 @@ dbn = src.std.MaskedMerge(dbn, msk)
 dbn = adptvgrnMod(dbn, luma_scaling=40, size=1.5, strength=.8, cstrength=.5, sharp=80, seed=222)
 src = awf.rfs(src, dbn, "[633 163056]")
 
-src = vsu.depth(src, 10)
+src = vsu.depth(src, 10).std.Trim(23)
 
 src.set_output()
