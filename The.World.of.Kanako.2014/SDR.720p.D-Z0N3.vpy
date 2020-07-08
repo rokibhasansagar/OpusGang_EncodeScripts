@@ -16,18 +16,14 @@ src = vsu.depth(src, 16)
 # The required prot_val varies by frame, so I just automated it. #
 ##################################################################
 
-def evalf(n, f, clip):
-    return rektlvls(clip, rownum=[0, 1, 2, 3, 4, 5, 797, 800, 801, 802], rowval=[13, -8, 6, -1, -1, 2, 2, 5, -9, 13], prot_val=[f.props.PlaneStatsMin >> 8 + 1, f.props.PlaneStatsMax >> 8 - 2])
-
-src = src.std.PlaneStats()
-src = src.std.FrameEval(partial(evalf, clip=src), src)
+src = rektlvls(src, rownum=[0, 1, 2, 3, 4, 5, 797, 800, 801, 802], rowval=[13, -8, 6, -1, -1, 2, 2, 5, -9, 13], autoprot=True, autotol=[1, 2])
 
 ############################################################
 # Dirty chroma at the top and bottom requires fillborders. #
 ############################################################
 
 src = awf.fb(src, bottom=1, planes=[1, 2], top=1)
-src = awf.fb(src, bottom=1, planes=0)
+src = fixbrdrs(src, bottom=True)
 
 ##############################################################################################
 # I would rather encode this in 1080p, but the required bitrate is above that of the source. #
@@ -40,14 +36,15 @@ src = awf.cr(src, 720, bottom=1)
 ###############################################
 
 dbn = fvf.gf3(src, thr=.5, elast=4, radius=25)
-dbn = adptvgrnMod(dbn, luma_scaling=10, size=1, strength=.2, seed=222, static=True)
+dbn = adptvgrnMod(dbn, luma_scaling=10, size=1, strength=.1, seed=222, static=True, lo=19)
 src = awf.rfs(src, dbn, "[24 407]")
 
 ######################################################################################################
 # The source has tons of issues with banding, blocking, and lost grain.                              #
 # The easiest way to solve this was to use one f3kdb along a sizedgrn call with the following masks: #
 #  - One edge mask to keep details from being destroyed by f3kdb.                                    #
-#  - One bandmask call to keep f3kdb from affecting issue-free areas.                                #
+#  - One bandmask call to keep f3kdb from affecting issue-free areas.                                # 
+#  - One luma-adaptive mask on bandmask to only apply grain to very flat areas.                      #
 #  - One luma-adaptive mask to limit f3kdb and sizedgrn to dark areas of dark frames.                #
 ######################################################################################################
 
@@ -57,8 +54,11 @@ msk.set_output()
 dbn = dbn.std.MaskedMerge(src, dbn)
 msk = awf.bandmask(src, thr=200)
 dbn = src.std.MaskedMerge(dbn, msk)
-dbn = sizedgrn(dbn, size=1.3, strength=.8, cstrength=.5, sharp=90, seed=222, static=False)
-msk = src.adg.Mask(luma_scaling=40)
+grn = sizedgrn(dbn, size=1.25, strength=.6, cstrength=.4, sharp=80, seed=222, static=False)
+msk = msk.std.Expr("x 0 = 49152 16384 ?")
+msk = vsu.iterate(msk, core.std.Minimum, 6).std.PlaneStats().adg.Mask(luma_scaling=8)
+dbn = dbn.std.MaskedMerge(grn, msk)
+msk = src.std.PlaneStats().adg.Mask(luma_scaling=25)
 dbn = src.std.MaskedMerge(dbn, msk)
 src = awf.rfs(src, dbn, "[633 163056]")
 

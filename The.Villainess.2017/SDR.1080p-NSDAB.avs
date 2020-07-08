@@ -13,7 +13,7 @@ ConditionalFilter(f3,last,"SceneType","=","3")
 ConditionalFilter(f4,last,"SceneType","=","4")
 ConditionalFilter(f5,last,"SceneType","=","5")
 
-ConditionalReader("~/zones.txt","SceneType")
+ConditionalReader("SDR.1080p-NSDAB.txt","SceneType")
 
 #test encodes
 #Trim(1744,171697).SelectRangeEvery(every=20000, length=250, offset=500, audio=true)
