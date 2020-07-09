@@ -8,6 +8,43 @@ from rekt import *
 from adptvgrnMod import *
 from functools import partial
 
+
+def rektlvls(clip, rownum=None, rowval=None, colnum=None, colval=None, prot_val=[16, 235], min=16, max=235, autoprot=False, autotol=[1, 2]):
+    '''
+    Wrapper around rektlvl: a rekt_fast version of havsfunc's FixBrightnessProtect2.
+    :param clip: Clip to be processed.
+    :param rownum: Row(s) to be processed.
+    :param rowval: Row adjustment value. Negatives darken, positives brighten. Values can be between -100 and 100.
+    :param colnum: Column(s) to be processed.
+    :param colval: Column adjustment value. Negatives darken, positives brighten. Values can be between -100 and 100.
+    :param prot_val: If None, this will work like FixBrightness. If an int, values above 255 - prot_val will not be
+                     processed. If list, first int is value below which no processing takes place, second int is same as
+                     no list.
+    :return: Clip with first plane's values adjusted by adj_val.
+    '''
+    if autoprot:
+        def findprot(n, f, clip=clip, rownum=rownum, rowval=rowval, colnum=colnum, colval=colval):
+            prot_val = [f.props.PlaneStatsMin >> (clip.format.bits_per_sample - 8) + autotol[0], f.props.PlaneStatsMax >> (clip.format.bits_per_sample - 8) - autotol[1]]
+            return rektlvls(clip, rownum=rownum, rowval=rowval, colnum=colnum, colval=colval, prot_val=prot_val)
+        return clip.std.FrameEval(partial(findprot), clip.std.PlaneStats())
+    else:
+        if rownum is not None:
+            if isinstance(rownum, int):
+                rownum = [rownum]
+            if isinstance(rowval, int):
+                rowval = [rowval]
+            for _ in range(len(rownum)):
+                clip = rektlvl(clip, rownum[_], rowval[_], type='row', prot_val=prot_val, min=min, max=max)
+        if colnum is not None:
+            if isinstance(colnum, int):
+                colnum = [colnum]
+            if isinstance(colval, int):
+                colval = [colval]
+            for _ in range(len(colnum)):
+                clip = rektlvl(clip, colnum[_], colval[_], type='column', prot_val=prot_val, min=min, max=max)
+        return clip
+
+
 src = core.ffms2.Source("The.World.Of.Kanako.2014.1080p.BluRay.REMUX.AVC.DTS-HD.MA5.1-MC.mkv").std.Crop(top=138, bottom=138)
 
 src = vsu.depth(src, 16)
