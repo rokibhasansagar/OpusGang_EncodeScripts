@@ -66,7 +66,7 @@ src = fixbrdrs(src, bottom=True)
 # I would rather encode this in 1080p, but the required bitrate is above that of the source. #
 ##############################################################################################
 
-src = awf.cr(src, 720, bottom=1)
+src = src.resize.Spline36(1280, 536, src_height=src.height - 1)
 
 ###############################################
 # Fix for intro banding, gf3 just works here. #
