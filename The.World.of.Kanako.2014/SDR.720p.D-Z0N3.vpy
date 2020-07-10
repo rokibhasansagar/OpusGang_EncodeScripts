@@ -86,8 +86,7 @@ src = awf.rfs(src, dbn, "[24 407]")
 ######################################################################################################
 
 dbn = src.f3kdb.Deband(range=10, y=48, cb=32, cr=32, grainy=0, grainc=0, output_depth=16)
-msk = kgf.retinex_edgemask(dbn).std.Expr("x 5000 > x 4 * x ?").std.Maximum().std.Inflate().std.Maximum()
-msk.set_output()
+msk = kgf.retinex_edgemask(src).std.Expr("x 5000 > x 4 * x ?").std.Maximum().std.Inflate().std.Maximum()
 dbn = dbn.std.MaskedMerge(src, dbn)
 msk = awf.bandmask(src, thr=200)
 dbn = src.std.MaskedMerge(dbn, msk)
