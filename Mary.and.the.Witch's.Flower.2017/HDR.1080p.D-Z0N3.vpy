@@ -1,31 +1,48 @@
 import vapoursynth as vs
-core = vs.get_core()
+core = vs.core
+core.max_cache_size = 2048
+from vsutil import *
+import awsmfunc as awf
 import fvsfunc as fvf
-import mvsfunc as mvf
 import kagefunc as kgf
-import havsfunc as hvf
-import vsTAAmbk as taa
-import fag3kdb
-import nnedi3_resample as nnrs
-import BalanceBorders
-import sgvsfunc as sgf
+from adptvgrnMod import *
 
-src=core.ffms2.Source(r"")
+# The film grain here is impossible to emulate properly with current methods, so I didn't fix the dynamic/static grain switching.
 
-crop=core.std.Crop(src,top=42,bottom=42)
-crop=fvf.DebicubicM(crop,1998,1080)
-crop=core.resize.Spline36(crop,1920,1038)
+src = core.ffms2.Source("Mary and the Witch's Flower 2017 2160p UHD Blu-ray Remux v5 Dual Audio HEVC HDR10 DTS-HD MA 5 1.mkv")
+src = src.std.Crop(top=42, bottom=42)
+src = depth(src, 16)
 
-b16 = mvf.Depth(crop, 16)
+# The whole thing is animated at 2560x1384.  I descaled and then resized to 1080p, because standards. :(
+# Chroma had to be shifted by slightly less than -0.5.  I think this is how shifting works with double resizing.
 
-b16=hvf.FineDehalo(b16,rx=2.0,darkstr=0.0)
+y, u, v = split(src)
+alt = [y.std.Crop(top=1, bottom=1), u, v]
+y = fvf.Debicubic(y, 2560, 1384, b=0, c=.5)
+y = awf.cr(y, 1080)
+shift = .25 - .25 * 3840 / 2560 - .25 * 2560 / 1920
+u, v = u.resize.Spline36(960, 519, src_left=shift), v.resize.Spline36(960, 519, src_left=shift)
+src = join([y, u, v])
 
-dbfk = b16.f3kdb.Deband(range=15, y=60, cb=0, cr=0, grainy=22, grainc=0, output_depth=16)
-mask = kgf.retinex_edgemask(b16).std.Binarize(3000).std.Maximum().std.Inflate()
-merged = core.std.MaskedMerge(dbfk, b16, mask)
-merged = mvf.Depth(merged, 16)
-sfdbfk=fvf.ReplaceFramesSimple(b16, merged, mappings="[34259 34387] [79905 80039] [80286 80573] [80694 81110] [111752 111889] [112109 112252]")
+# Debanded luma.
 
-final=mvf.Depth(sfdbfk,10)
+dbn = y.placebo.Deband(threshold=4., radius=20., grain=8)
+ems = kgf.kirsch(y).std.Maximum()
+dbn = dbn.std.MaskedMerge(y, ems)
+dbn = join([dbn, u, v])
+src = awf.rfs(src, dbn, "[111752 111889]")
 
-final.set_output()
+# Debanded intro luma and resized with spline.  I don't know why I manually shifted.
+
+alt[0] = alt[0].resize.Spline36(src.width, src.height)
+dbn = alt[0].placebo.Deband(threshold=6., radius=20., grain=0)
+ems = kgf.kirsch(alt[0]).std.Maximum()
+dbn = dbn.std.MaskedMerge(alt[0], ems)
+alt[1], alt[2] = alt[1].resize.Spline36(u.width, u.height, src_left=-.25), alt[2].resize.Spline36(u.width, u.height, src_left=-.25)
+dbn = join(alt)
+dbn = sizedgrn(dbn, strength=.1, static=True)
+src = awf.rfs(src, dbn, "[50 324]")
+
+src = depth(src, 10)
+
+src.set_output()
