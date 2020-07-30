@@ -74,15 +74,20 @@ def fixbrdrs(clip, left=False, top=False, right=False, bottom=False, thr=3):
     
 
 src = core.ffms2.Source("Parasite.2019.Black.and.White.Hybrid.BluRay.Remux.1080p.AVC.Atmos.7.1-HiFi.mkv").std.Crop(top=138, bottom=138)
-src_= src
 
-uhd = core.ffms2.Source("parasite.mkv").std.Crop(top=276, bottom=276)
+# We'll need the UHD source to generate the mask for the black dots later.
+uhd = core.ffms2.Source("parasite_deu_uhd.mkv").std.Crop(top=276, bottom=276)
 uhd = depth(uhd, 16)
 uhd = awf.cr(uhd, 1080, top=1, bottom=1)
 
+src = depth(src, 16)
+
+# No point in working on anything other than the luma plane here.
 src = get_y(src)
 
-src = depth(src, 16)
+############################################################################
+# Dirty line fixes.  A simple rektlvls application wasn't entirely enough. #
+############################################################################
 
 # A diagonal line aware(-ish) version of FillBorders.
 src = fixbrdrs(src, top=True, thr=1)
@@ -95,7 +100,7 @@ bbm = awf.bbmod(src, top=6, blur=20, thresh=2500, planes=0).std.Crop(bottom=src.
 csr = src.std.Crop(bottom=src.height - 6)
 # A LimitFilter for brights, one for darks, and mix the two in between.
 lmt_bright = mvf.LimitFilter(bbm, csr, thr=8, brighten_thr=5, elast=2)
-lmt_dark = mvf.LimitFilter(bbm, csr, thr=1, brighten_thr=.5, elast=1.2)
+lmt_dark = mvf.LimitFilter(bbm, csr, thr=1, brighten_thr=0.5, elast=1.2)
 # This expression is honestly kind of dumb:
 # If x is above bright/dark threshold, use the bright/dark limited clip.
 # Else, softly apply all three clips.  Half of the source is used, the other half is made up of:
@@ -108,11 +113,12 @@ csr = src.std.Crop(top=src.height - 8)
 ref = src.cf.ContinuityFixer(bottom=8, radius=10).std.Crop(top=src.height - 8)
 lmt_bot = mvf.LimitFilter(ref, csr, thr=9, brighten_thr=2, elast=1.1)
 lmt_bot = core.std.Expr([csr, lmt_bot], f"x {210 << 8} > y x ?")
+
 src = core.std.StackVertical([lmt, src.std.Crop(top=6, bottom=8), lmt_bot])
 
-###################################################################
-# there's a scene where there are random black dots flying around #
-###################################################################
+####################################################################
+# There's a scene where there are random black dots flying around. #
+####################################################################
 
 # limit general area, although this should probably be animated later
 ref = src.std.Crop(left=0, top=150, right=1650, bottom=524)
@@ -148,15 +154,22 @@ rep = core.std.MaskedMerge(ref, fix, msk).std.AddBorders(top=150, right=1650, bo
 rep = rekt(src, rep, 0, 176, 1710, 524)
 src = awf.rfs(src, rep, "[151784 151857]")
 
-rtx = kgf.retinex_edgemask(src)
+#######################################################################
+# Debanding.  Source was relatively fine, so just light applications. #
+#######################################################################
 
-# intro has an artifact that a simple blur makes unnoticeable
+# Less writing for me to do later.
+rtx = kgf.retinex_edgemask(src)
+bms = awf.bandmask(src, thr=200, mid=2)
+
+# Intro has an artifact that a simple blur makes unnoticeable.
 blr = rekt_fast(src, lambda c: c.bilateral.Gaussian(sigma=10), 710, 650, 1130, 40)
 blr = rekt(src, blr, 738, 680, 1148, 68)
 src = awf.rfs(src, blr, "[165 169]")
 
-# intro
-dbn = src.placebo.Deband(threshold=5.5, radius=20, grain=0)
+# Intro requires some destructive debanding, but I prefer this over "details".
+# It's just an intro, anyway, so who really cares?
+dbn = src.placebo.Deband(threshold=6, radius=20, grain=0)
 msk = kgf.kirsch(src).std.Inflate().std.Maximum()
 dbn = dbn.std.MaskedMerge(src, msk)
 grn = adptvgrnMod(dbn, size=1, strength=.16, fade_edges=True, seed=7, static=True, luma_scaling=2)
@@ -165,32 +178,36 @@ src = awf.rfs(src, grn, "[24 526]")
 dbn = src.neo_f3kdb.Deband(y=32, grainy=8, sample_mode=4)
 src = awf.rfs(src, dbn, "[552 572] [632 651]")
 
-# fades
+# Fades don't look great, sadly.
 dbn = src.neo_f3kdb.Deband(range=30, y=64, grainy=0, sample_mode=4)
-dbn = adptvgrnMod(dbn, strength=.1, size=1.1)
+dbn = adptvgrnMod(dbn, size=1.1, strength=.1)
 src = awf.rfs(src, dbn, "[1049 1059] [63630 63651] [166959 167047] [167112 167190] [181767 181917] [181971 182207] [182698 182737]")
 
-# grained banding
-dbn = src.placebo.Deband(threshold=3.2, radius=25, grain=0)
-ems = rtx.std.Inflate()
+# Banding in grainier frames.
+dbn = src.neo_f3kdb.Deband(range=20, y=32, grainy=0, sample_mode=4)
+ems = rtx.std.Binarize(12000).std.Maximum().std.Inflate()
 dbn = dbn.std.MaskedMerge(src, ems)
+dbn = src.std.MaskedMerge(dbn, bms)
 dbn = adptvgrnMod(dbn, size=1.1, strength=.2, seed=20000, luma_scaling=20)
 src = awf.rfs(src, dbn, "[5800 5885] [5976 6030] [8810 8891] [8965 9135] [9201 9377] [9442 9562] [43691 43796] [45866 46026] [58245 58377] [94847 94971] [98905 98946] [107066 107197] [119573 119634] [120202 120260] [126713 127867] [142331 143107] [144024 144507] [144508 145852] [157689 158159] [158246 158310] [158382 158463] [159764 159877] [164427 164434] [164548 164561] [171618 171691] [172301 172431] [175173 175509]")
 
-# just bright sky bad dither
+# Bright skies often had banding or bad dither issues.
 dbn = src.placebo.Deband(threshold=3, radius=30, grain=0)
+# Absolutely no one cares if the grain is dynamic or not in brights.
 dbn = sizedgrn(dbn, static=True, strength=.2)
 msk = adptvgrnMod(src.std.Invert(), show_mask=True, luma_scaling=5)
 dbn = src.std.MaskedMerge(dbn, msk)
 src = awf.rfs(src, dbn, "[18631 18970] [54944 55133] [55301 55467] [55709 55794] [55884 56078] [56238 56381] [108917 108929] [149361 149413]")
 
-# legitimate flat banded area
-dbn = src.placebo.Deband(threshold=5.5, radius=23, grain=0)
-ems = rtx.std.Maximum().std.Inflate()
+# Frames with more prevalent banding issues.
+dbn = src.neo_f3kdb.Deband(range=25, y=48, grainy=0, sample_mode=4)
+ems = rtx.std.Expr("x 9000 > x 10 * x ?").std.Maximum().std.Inflate()
 dbn = dbn.std.MaskedMerge(src, ems)
+dbn = src.std.MaskedMerge(dbn, bms)
 dbn = adptvgrnMod(dbn, luma_scaling=10, size=1.1, strength=.5, seed=2057)
 src = awf.rfs(src, dbn, "[59873 59877] [143108 143327] [143702 144023] [159362 159365] [163396 163406] [171513 171617]")
 
+# 4:2:0
 src = src.resize.Point(format=vs.YUV420P8, dither_type="error_diffusion")
 
 src.set_output()
