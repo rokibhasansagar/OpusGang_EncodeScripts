@@ -76,6 +76,8 @@ dbn = fvf.gf3(src, thr=.5, elast=4, radius=25)
 dbn = adptvgrnMod(dbn, luma_scaling=10, size=1, strength=.1, seed=222, static=True, lo=19)
 src = awf.rfs(src, dbn, "[24 407]")
 
+dgr = STGraino(src, planes=[0, 1, 2], str=[3, 5, 5])
+
 ######################################################################################################
 # The source has tons of issues with banding, blocking, and lost grain.                              #
 # The easiest way to solve this was to use one f3kdb along a sizedgrn call with the following masks: #
@@ -87,16 +89,16 @@ src = awf.rfs(src, dbn, "[24 407]")
 
 dbn = src.f3kdb.Deband(range=10, y=48, cb=32, cr=32, grainy=0, grainc=0, output_depth=16)
 msk = kgf.retinex_edgemask(src).std.Expr("x 10000 > x 4 * x ?").std.Maximum().std.Inflate().std.Maximum()
-dbn = dbn.std.MaskedMerge(src, dbn)
+dbn = dbn.std.MaskedMerge(dgr, dbn)
 msk = awf.bandmask(src, thr=200)
-dbn = src.std.MaskedMerge(dbn, msk)
+dbn = dgr.std.MaskedMerge(dbn, msk)
 grn = sizedgrn(dbn, size=1.25, strength=.6, cstrength=.4, sharp=80, seed=222, static=False)
 msk = msk.std.Expr("x 0 = 49152 16384 ?")
 msk = vsu.iterate(msk, core.std.Minimum, 6).std.PlaneStats().adg.Mask(luma_scaling=8)
 dbn = dbn.std.MaskedMerge(grn, msk)
 msk = src.std.PlaneStats().adg.Mask(luma_scaling=25)
-dbn = src.std.MaskedMerge(dbn, msk)
-src = awf.rfs(src, dbn, "[633 163056]")
+dbn = dgr.std.MaskedMerge(dbn, msk)
+src = awf.rfs(dgr, dbn, "[633 163056]")
 
 ###################################################################
 # Remove dirty black frames at start and replace with clean ones. #
