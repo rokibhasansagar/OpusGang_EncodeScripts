@@ -1,24 +1,35 @@
 import vapoursynth as vs
-core = vs.get_core()
+core = vs.core
+from vsutil import *
+import awsmfunc as awf
 import fvsfunc as fvf
 import kagefunc as kgf
+from adptvgrnMod import *
 
-src=core.ffms2.Source("")
+core.max_cache_size=2048
 
-src=fvf.Depth(src,16)
+src = core.ffms2.Source("Game.of.Thrones.S01E02.The.Kingsroad.2160p.UHD.BluRay.REMUX.HDR.HEVC.Atmos-EPSiLON.mkv")
 
-src=fvf.Debilinear(src,1920,1080,yuv444=True)
+src = depth(src, 16)
 
-b16=fvf.Depth(src,16)
+src = fvf.Debilinear(src, 1920, 1080, yuv444=True)
 
-db = b16.f3kdb.Deband(range=15, y=60, cb=60, cr=60, grainy=10, grainc=10, output_depth=16)
-mask = kgf.retinex_edgemask(b16)
-merged = core.std.MaskedMerge(db, b16, mask)
-sfdb=fvf.ReplaceFramesSimple(b16, merged, mappings="[135 191]")
+dbn = src.neo_f3kdb.Deband(range=15, y=60, cb=60, cr=60, grainy=0, grainc=0, output_depth=16, sample_mode=4)
+dbn = sizedgrn(dbn, strength=.1, cstrength=.05, static=True)
+msk = kgf.retinex_edgemask(src)
+mrg = core.std.MaskedMerge(dbn, src, msk)
+src = awf.rfs(src, mrg, "[135 191]")
 
-#tonemap=fvf.Depth(sfdb,32)
-#tonemap=core.tonemap.Reinhard(tonemap,0.8,0.5,0.9)
+dbn = src.neo_f3kdb.Deband(range=20, y=48, cb=48, cr=48, grainy=0, grainc=0, output_depth=16, sample_mode=4)
+dbn = sizedgrn(dbn, strength=.7, cstrength=.4, sharp=90, size=1.5)
+msk = msk.std.Binarize(8000).std.Maximum()
+dbn = dbn.std.MaskedMerge(src, msk)
+bms = awf.bandmask(src, thr=100).std.Inflate().std.Maximum().std.Inflate()
+dbn = src.std.MaskedMerge(dbn, bms)
+agm = adptvgrnMod(src, show_mask=True, luma_scaling=10)
+dbn = src.std.MaskedMerge(dbn, agm)
+src = awf.rfs(src, dbn, "[226 77977]")
 
-final=fvf.Depth(sfdb,10)
+src = depth(src, 10)
 
-final.set_output()
+src.set_output()
