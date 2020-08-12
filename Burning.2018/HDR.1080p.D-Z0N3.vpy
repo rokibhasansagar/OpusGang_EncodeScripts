@@ -6,7 +6,7 @@ import awsmfunc as awf
 from adptvgrnMod import *
 import kagefunc as kgf
 
-src = core.ffms2.Source("/Disk1/home/a/Videos/Burning.2018.REPACK.Hybrid.UHD.BluRay.Remux.2160p.HEVC.HDR.DTS-HD.MA.5.1-eXcommunicado.mkv").std.Crop(top=276, bottom=276)
+src = core.ffms2.Source("Burning.2018.REPACK.Hybrid.UHD.BluRay.Remux.2160p.HEVC.HDR.DTS-HD.MA.5.1-eXcommunicado.mkv").std.Crop(top=276, bottom=276)
 src_ = awf.zresize(src, 1080)
 src = depth(src, 16)
 
