@@ -2,40 +2,44 @@ import vapoursynth as vs
 core = vs.get_core()
 import fvsfunc as fvf
 import kagefunc as kgf
-import havsfunc as hvf
-import vsTAAmbk as taa
+import lvsfunc as lvf
+import awsmfunc as awf
+from vsutil import *
 import dfmderainbow
+from adptvgrnMod import *
+import vsTAAmbk as taa
 
-core.max_cache_size=15000
+core.max_cache_size=1024
 
-src=core.ffms2.Source("")
-e06 = core.ffms2.Source("")
-e06 = fvf.Debilinear(fvf.Depth(e06, 16), 1920, 1080, yuv444=True)
+src = core.ffms2.Source("Game.of.Thrones.S01E07.You.Win.or.You.Die.2160p.UHD.BluRay.REMUX.HDR.HEVC.Atmos-EPSiLON.mkv")
 
-src=fvf.Depth(src,16)
+src = depth(src,16)
 
-src=fvf.Debilinear(src,1920,1080,yuv444=True)
+src = fvf.Debilinear(src, 1920, 1080, yuv444=True)
 
-dr=dfmderainbow.DFMDerainbow(src,10)
+dr = dfmderainbow.DFMDerainbow(src, 10)
 
-aa=taa.TAAmbk(dr, aatype=2, aatypeu=6, aatypev=6, opencl=True, mtype=1, mpand=[0, 0], down8=False, aarepair=0)
-aa1=taa.TAAmbk(dr, aatype=6, aatypeu=6, aatypev=6, opencl=True, mtype=1, mpand=[0, 0], down8=False, aarepair=24)
+aa = lvf.sraa(dr, rfactor=1.8)
+ref = get_y(src).std.Convolution(9 * [1])
+ref = kgf.kirsch(ref).std.Binarize(13000).std.Maximum()
+aa = src.std.MaskedMerge(aa, ref)
 
-db = src.f3kdb.Deband(range=15, y=60, cb=60, cr=60, grainy=10, grainc=10, output_depth=16)
-mask = kgf.retinex_edgemask(src)
-merged = core.std.MaskedMerge(db, src, mask)
-sf=fvf.ReplaceFramesSimple(aa, merged, mappings="[135 191]")
+dbn = src.f3kdb.Deband(range=15, y=60, cb=60, cr=60, grainy=10, grainc=10, output_depth=16)
+msk = kgf.retinex_edgemask(src)
+mrg = core.std.MaskedMerge(dbn, src, msk)
+src = awf.rfs(aa, mrg, mappings="[135 191]")
 
-db=aa.f3kdb.Deband(range=20,y=10,cb=10,cr=10,grainy=32,grainc=32,output_depth=16,dynamic_grain=True)
-merged=core.std.MaskedMerge(db,aa,mask.std.Binarize(5700))
-sf=fvf.rfs(sf,merged,"[2781 2804]")
+dbn = aa.neo_f3kdb.Deband(range=20, y=48, cb=48, cr=48, grainy=0, grainc=0, output_depth=16, sample_mode=4)
+msk = msk.std.Binarize(8000).std.Maximum()
+dbn = dbn.std.MaskedMerge(aa, msk)
+bms = awf.bandmask(src, thr=100).std.Inflate().std.Maximum().std.Inflate()
+dbn = aa.std.MaskedMerge(dbn, bms)
+agm = adptvgrnMod(aa, show_mask=True, luma_scaling=50)
+dbn = sizedgrn(dbn, strength=.3, cstrength=.1, sharp=90, size=1.2)
+dbn = aa.std.MaskedMerge(dbn, agm)
+src = awf.rfs(src, dbn, "[226 77977]")
 
-text=taa.TAAmbk(src,aatype=3,aatypeu=0,aatypev=0,mtype=1)
-sf=fvf.rfs(sf,text,"[192 2780] [81588 83197]")
+txt = taa.TAAmbk(src, aatype=3, aatypeu=0, aatypev=0, mtype=1)
+src = awf.rfs(src, txt, "[192 2780] [81588 83197]")
 
-# swapping out intro to that from previous episode
-sf = fvf.rfs(sf, e06, "[0 422] [472 667] [771 777] [893 954] [1006 2602]")
-
-final=fvf.Depth(sfdb,10)
-
-final.set_output()
+src = depth(src, 10)

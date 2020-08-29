@@ -1,32 +1,33 @@
 import vapoursynth as vs
-core = vs.get_core()
+core = vs.core
 import fvsfunc as fvf
 import kagefunc as kgf
-import vsTAAmbk as taa
-import sgvsfunc as sgf
-from debandmask import *
+import awsmfunc as awf
 from vsutil import *
+from adptvgrnMod import *
 
-#progress 5772
+core.max_cache_size = 1024
 
-core.max_cache_size=15000
+src = core.ffms2.Source("Game.of.Thrones.S01E08.The.Pointy.End.2160p.UHD.BluRay.REMUX.HDR.HEVC.Atmos-EPSiLON.mkv")
 
-src = core.ffms2.Source("")
-
-src = fvf.Depth(src, 16)
+src = depth(src, 16)
 
 src = fvf.Debilinear(src, 1920, 1080, yuv444=True)
 
-db = src.f3kdb.Deband(range=15, y=60, cb=60, cr=60, grainy=10, grainc=10, output_depth=16)
-mask = kgf.retinex_edgemask(src)
-merged = core.std.MaskedMerge(db, src, mask)
-sfdb = fvf.ReplaceFramesSimple(src, merged, mappings="[135 191]")
+dbn = src.neo_f3kdb.Deband(range=15, y=60, cb=60, cr=60, grainy=0, grainc=0, output_depth=16, sample_mode=4)
+dbn = sizedgrn(dbn, strength=.1, cstrength=.05, static=True)
+msk = kgf.retinex_edgemask(src)
+mrg = core.std.MaskedMerge(dbn, src, msk)
+src = awf.rfs(src, mrg, "[135 191]")
 
-db = src.f3kdb.Deband(range=10, y=50, cb=0, cr=0, grainy=64, grainc=15, output_depth=16, dynamic_grain=True)
-mask = kgf.kirsch(get_y(src)).std.Maximum().std.Binarize(5000).std.Inflate() # This is basically a faster retinex mask with worse results in dark areas.  The debanded stuff here isn't in dark enough areas for there to be a big difference, though.
-merged = core.std.MaskedMerge(db, src, mask)
-sfdb = fvf.ReplaceFramesSimple(sfdb, merged, mappings="[7486 7489] [7580 7626] [8108 8119] [8554 8663] [8793 8932] [10730 10895] [10936 11075] [11367 11602] [12375 12430] [37942 37964]")
+dbn = src.neo_f3kdb.Deband(range=20, y=48, cb=48, cr=48, grainy=0, grainc=0, output_depth=16, sample_mode=4)
+dbn = sizedgrn(dbn, strength=.7, cstrength=.4, sharp=90, size=1.5)
+msk = msk.std.Binarize(8000).std.Maximum()
+dbn = dbn.std.MaskedMerge(src, msk)
+bms = awf.bandmask(src, thr=100).std.Inflate().std.Maximum().std.Inflate()
+dbn = src.std.MaskedMerge(dbn, bms)
+agm = adptvgrnMod(src, show_mask=True, luma_scaling=10)
+dbn = src.std.MaskedMerge(dbn, agm)
+src = awf.rfs(src, dbn, "[226 81988]")
 
-final = fvf.Depth(sfdb, 10)
-
-final.set_output()
+src = depth(src, 10)

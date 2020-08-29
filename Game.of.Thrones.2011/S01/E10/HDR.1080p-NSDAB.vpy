@@ -1,10 +1,13 @@
 import vapoursynth as vs
-core = vs.get_core()
+core = vs.core
+core.max_cache_size = 2048
+from vsutil import *
+import awsmfunc as awf
 import fvsfunc as fvf
 import kagefunc as kgf
 from debandmask import *
 
-src = core.ffms2.Source("")
+src = core.ffms2.Source("Game.of.Thrones.S01E10.Fire.and.Blood.2160p.UHD.BluRay.REMUX.HDR.HEVC.Atmos-EPSiLON.mkv")
 
 src = fvf.Depth(src, 16)
 
