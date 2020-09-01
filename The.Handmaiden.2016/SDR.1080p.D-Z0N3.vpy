@@ -9,15 +9,18 @@ from adptvgrnMod import *
 from rekt import *
 from retinex_fdog import *
 
-src = core.ffms2.Source("The Handmaiden 2016 1080p JPN.mkv")
+kor = core.ffms2.Source("The Handmaiden 2016 1080p KOR.mkv").std.Crop(top=138, bottom=138)
+
+src = core.ffms2.Source("The Handmaiden 2016 1080p JPN.mkv").std.AssumeFPS(kor)
 src = src.std.Crop(top=138, bottom=138)
+src_= src
 src = depth(src, 16)
 
 ###############
 # Dirty lines #
 ###############
 
-src = rektlvls(src, colnum=[0, src.width - 1], colval=[5, 5], rownum=[0, src.height - 1], rowval=[5, 4.5])
+src = rektlvls(src, colnum=[0, src.width - 1], colval=[5, 5], rownum=[0, src.height - 1], rowval=[5, 4.5], prot_val=[16, 240])
 
 #############
 # Debanding #
@@ -70,5 +73,27 @@ src = awf.rfs(src, drg, "[199828 207003]")
 src = src[:1010] + adptvgrnMod(src, size=1, luma_scaling=100, grainer=lambda s: pointgrn(s, size=1, strength=.2, cstrength=.1, seed=69))[1010:]
 
 src = depth(src, 8)
+
+#########################
+# KOR theatrical scenes #
+#########################
+
+kor = depth(kor, 16)
+
+# rounding error fix
+kor = kor.std.Expr("x 128 +")
+
+kor = kor.resize.Point(matrix_in_s="470bg", matrix_s="709", dither_type="error_diffusion")
+
+kra = adptvgrnMod(kor, luma_scaling=25)
+kra = depth(kra, 8)
+
+krb = kor.neo_f3kdb.Deband(range=25, y=48, cb=48, cr=48, grainy=0, grainc=0, sample_mode=4)
+msk = retinex_fdog(kor, 2.5).std.Binarize(10000).std.Maximum().std.Maximum().std.Inflate().std.Maximum()
+krb = krb.std.MaskedMerge(kor, msk)
+krb = adptvgrnMod(krb, size=0.8, sharp=100, luma_scaling=70, grainer=lambda c: pointgrn(c, 1/2.4, strength=.4, cstrength=.4))
+krb = depth(krb, 8)
+
+src = src[:55225] + kra[55225:55273] + src[55225:170037] + krb[170085:170161] + src[170037:]
 
 src.set_output()
