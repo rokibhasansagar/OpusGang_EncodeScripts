@@ -1,0 +1,485 @@
+FFVideoSource()
+Crop(0, 132, -0, -130)
+s0=last
+a=MergeChroma(z_ConvertFormat(1920, 818, src_left=2, src_width=-2, resample_filter="spline36", dither_type="none", cpu_type="skl-x"))
+StackHorizontal(a.crop(0,0,2,0), crop(2, 0, 1916, 0), a.crop(1918, 0, 0, 0))
+s1=last
+
+f1=StackHorizontal(crop(0, 0, 2, 0).BalanceB(0, 0, 1, 0, blur=12), crop(2, 0, 0, 0))
+f2=StackHorizontal(crop(0, 0, 2, 0).BalanceB(0, 0, 1, 0, blur=1), crop(2, 0, 0, 0))
+f10=StackHorizontal(crop(0,0,2,0),crop(2,0,6,0).FixColumnBrightness(2,16,235,16,220,220).BalanceB(0,0,2,0),crop(8,0,0,0))
+f11=StackHorizontal(s0.crop(0,0,6,0).FixColumnBrightness(4,16,235,16,230).FixColumnBrightness(3,16,225,16,235).FixColumnBrightness(2,16,195,16,235).FixColumnBrightness(1,16,235,16,16),s0.crop(6,0,0,0))
+f16=StackHorizontal(crop(0,0,4,0).FixColumnBrightness(3,16,235,16,225,230).FixColumnBrightness(2,16,235,16,220,230).BalanceB(0,0,2,0).FixColumnBrightness(0,16,235,16,16) ,crop(4,0,0,0))
+ConditionalFilter(f2, f1, "SceneType", "=", "1")
+ConditionalFilter(f10, last, "SceneType", "=", "2")
+ConditionalFilter(f11, last, "SceneType", "=", "3")
+ConditionalFilter(f16, last, "SceneType", "=", "4")
+ConditionalReader("... leftn.txt", "SceneType")
+
+f3=StackHorizontal(crop(0, 0, 1918, 0), crop(1918, 0, 0, 0).BalanceB(0, 0, 0, 1, thresh=40))
+f4=StackHorizontal(crop(0, 0, 1918, 0),crop(1918, 0, 0, 0).BalanceB(0, 0, 0, 1, blur=1))
+f9=StackHorizontal(crop(0,0,1912,0),crop(1912,0,0,0).FixColumnBrightness(1,16,235,16,230).FixColumnBrightness(1,16,235,16,225,180).FixColumnBrightness(2,16,235,16,225).FixColumnBrightness(2,16,235,16,215,180).FixColumnBrightness(3,16,235,16,220).FixColumnBrightness(3,16,235,16,200,180).FixColumnBrightness(4,16,235,16,16))
+f12=StackHorizontal(crop(0,0,1916,0),crop(1916,0,0,0).BalanceB(0,0,0,2,blur=4).FixColumnBrightness(3,16,235,16,16))
+f13=StackHorizontal(s0.crop(0,0,2,0),s0.crop(2,0,6,0).FixColumnBrightness(2,16,235,16,220,220).BalanceB(0,0,2,0),s0.crop(8,0,1908,0),s0.crop(1916,0,0,0).FixColumnBrightness(0,16,235,16,225).FixColumnBrightness(1,16,235,16,215).FixColumnBrightness(2,16,200,16,235).BalanceB(0,0,0,2,thresh=3).FixColumnBrightness(3,16,235,16,16))
+f14=StackHorizontal(s1.crop(0,0,2,0).FixColumnBrightness(1,16,228,16,235).FixColumnBrightness(0,16,235,16,16),s0.crop(2,0,1914,0),s0.crop(1916,0,0,0).FixColumnBrightness(0,16,235,16,230).FixColumnBrightness(1,16,235,16,230).BalanceB(0,0,0,2).FixColumnBrightness(3,16,235,16,16))
+f15=StackHorizontal(crop(0,0,1916,0),crop(1916,0,0,0).FixColumnBrightness(0,16,235,16,230).FixColumnBrightness(1,16,235,16,230).BalanceB(0,0,0,2).FixColumnBrightness(3,16,235,16,16))
+ConditionalFilter(f4, f3, "SceneType", "=", "1")
+ConditionalFilter(f9, last, "SceneType", "=", "2")
+ConditionalFilter(f12, last, "SceneType", "=", "3")
+ConditionalFilter(f13, last, "SceneType", "=", "4")
+ConditionalFilter(f14, last, "SceneType", "=", "5")
+ConditionalFilter(f15, last, "SceneType", "=", "6")
+ConditionalReader("... rightn.txt", "SceneType")
+s=last
+
+StackVertical(crop(0,0,0,2).FixRowBrightness(1,16,232,16,235).BalanceB(1,0,0,0,thresh=10), crop(0,2,0,812), crop(0,814,0,2).FixRowBrightness(1,16,233,16,235), crop(0,812,0,0).FixRowBrightness(4,16,185,16,235).crop(0,4,0,0))
+ac=last
+crop(0,814,0,0)
+c1=MergeChroma(StackVertical(crop(0,0,0,2),crop(0,0,0,2)))
+Stackvertical(ac.crop(0,0,0,814),c1)
+f5=StackVertical(crop(0,0,0,812),crop(0,812,0,0).FillBorder(0,0,0,1).BalanceB(0,2,0,0,thresh=6,blur=80))
+
+s
+StackVertical(crop(0,0,0,2).FixRowBrightness(1,16,232,16,235).BalanceB(1,0,0,0,thresh=10), crop(0,2,0,812), crop(0,814,0,2).BalanceB(0,1,0,0,thresh=4), crop(0,816,0,0).FixRowBrightness(0,16,192,16,235))
+chroma=MergeChroma(StackVertical(crop(0,0,0,816),crop(0,814,0,2)))
+extracty()
+c=crop(0,0813,0,4).BalanceBa(0,2,0,0,blur=4)
+StackVertical(crop(0,0,0,816),c.crop(0,3,0,0),crop(0,817,0,0))
+f6=CombinePlanes(last, chroma, planes="YUV", pixel_type="Yv12")
+
+s
+f7=StackVertical(crop(0,0,0,812),crop(0,812,0,2).FixRowBrightness(0,16,235,16,233).FixRowBrightness(1,16,235,16,227),crop(0,814,0,2).Tweak(sat=1.3,dither=true).BalanceB(0,1,0,0,blur=20),crop(0,816,0,0))
+
+f8=StackVertical(crop(0,0,0,2).FixRowBrightness(0,16,115,16,235),crop(0,2,0,810),crop(0,812,0,2).FixRowBrightness(0,16,235,16,233).FixRowBrightness(1,16,235,16,227),crop(0,814,0,2).Tweak(sat=1.3,dither=true).BalanceB(0,1,0,0,blur=20),crop(0,816,0,0))
+f17=StackVertical(crop(0,0,0,2).FixRowBrightness(0,16,110,16,235).BalanceB(1,0,0,0),crop(0,2,0,812),crop(0,814,0,2).FixRowBrightness(1,16,115,16,235).BalanceB(0,1,0,0),crop(0,816,0,0))
+ConditionalFilter(f6, f5, "SceneType", "=", "1")
+ConditionalFilter(f7, last, "SceneType", "=", "2")
+ConditionalFilter(f8, last, "SceneType", "=", "3")
+ConditionalFilter(f17, last, "SceneType", "=", "4")
+ConditionalReader("... bottomn.txt", "SceneType")
+
+f18=f3kdb(15,64,48,48,48,32,dither_algo=2,keep_tv_range=true,random_algo_ref=2)
+ConditionalFilter(f18, last, "SceneType", "=", "1")
+ConditionalReader("... fix.txt", "SceneType")
+
+
+
+leftn.txt
+
+FFVideoSource()
+Crop(0, 132, -0, -130)
+a=MergeChroma(z_ConvertFormat(1920, 818, src_left=2, src_width=-2, resample_filter="spline36", dither_type="none", cpu_type="skl-x"))
+StackHorizontal(a.crop(0,0,2,0), crop(2, 0, 1916, 0), a.crop(1918, 0, 0, 0))
+StackHorizontal(crop(0, 0, 2, 0).BalanceB(0, 0, 1, 0, blur=12), crop(2, 0, 0, 0))
+WriteFileIf(last, "leftn.txt", "LumaDifference(extracty().crop(0, 0, 1, 0), extracty().crop(1, 0, 1, 0)) >= 2", "current_frame")
+
+
+rightn.txt
+
+FFVideoSource()
+Crop(0, 132, -0, -130)
+StackHorizontal(crop(0, 0, 1918, 0), crop(1918, 0, 0, 0).BalanceB(0, 0, 0, 1, thresh=40))
+WriteFileIf(last, "rightn.txt", "LumaDifference(extracty().crop(1918, 0, 1, 0), extracty().crop(1919, 0, 0, 0)) >= 2", "current_frame")
+
+
+bottomn.txt
+
+FFVideoSource()
+Crop(0, 132, -0, -130)
+StackVertical(crop(0,0,0,2).FixRowBrightness(1,16,232,16,235).BalanceB(1,0,0,0,thresh=10), crop(0,2,0,812), crop(0,814,0,2).FixRowBrightness(1,16,233,16,235), crop(0,812,0,0).FixRowBrightness(4,16,185,16,235).crop(0,4,0,0))
+ac=last
+crop(0,814,0,0)
+c1=MergeChroma(StackVertical(crop(0,0,0,2),crop(0,0,0,2)))
+Stackvertical(ac.crop(0,0,0,814),c1)
+StackVertical(crop(0,0,0,812),crop(0,812,0,0).FillBorder(0,0,0,1).BalanceB(0,2,0,0,thresh=6,blur=80))
+WriteFileIf(last, "bottomn.txt", "LumaDifference(extracty().crop(0, 815, 0, 1), extracty().crop(0, 816, 0, 1)) >= 2", "current_frame")
+
+
+ fix.txt
+
+type int
+default 0
+
+R 1958 3428 1
+R 6174 6229 1
+R 6341 6363 1
+R 7176 7253 1
+R 7555 7588 1
+R 8167 8232 1
+R 8403 8470 1
+R 8501 8525 1
+R 8694 8723 1
+R 8856 8938 1
+R 9254 9359 1
+R 9522 9555 1
+R 9646 9686 1
+R 9734 9769 1
+R 9806 9840 1
+R 9886 10092 1
+R 10118 10191 1
+R 10288 10642 1
+R 10683 10717 1
+R 10979 12613 1
+R 12893 13030 1
+R 13176 13199 1
+R 13390 13408 1
+R 13971 14005 1
+R 14165 14223 1
+R 14275 14373 1
+R 14447 14756 1
+R 14817 14862 1
+R 14895 14942 1
+R 14990 15023 1
+R 15050 15073 1
+R 15202 15240 1
+R 15333 15366 1
+R 15395 15589 1
+R 15659 15922 1
+R 15966 16014 1
+R 16279 16316 1
+R 16392 16430 1
+R 16462 16476 1
+R 16511 17176 1
+R 17207 17335 1
+R 17417 17447 1
+R 17526 17552 1
+R 17588 17616 1
+R 17644 18003 1
+R 18057 18196 1
+R 18249 18361 1
+R 18408 18430 1
+R 18465 18548 1
+R 18712 18723 1
+R 18771 18786 1
+R 18805 18822 1
+R 18941 19040 1
+R 19599 19646 1
+R 28876 28904 1
+R 29323 29365 1
+R 29448 29482 1
+R 29533 29634 1
+R 29659 29689 1
+R 29785 29996 1
+R 30022 30061 1
+R 30091 30119 1
+R 30157 30195 1
+R 30223 30271 1
+R 30343 30448 1
+R 30480 30550 1
+R 30662 30720 1
+R 30829 30922 1
+R 30949 30965 1
+R 30996 31021 1
+R 31253 31305 1
+R 31333 31349 1
+R 31466 31490 1
+R 31518 31583 1
+R 31637 31667 1
+R 31719 31781 1
+R 31855 31942 1
+R 31993 32002 1
+R 32077 32133 1
+R 32341 32485 1
+R 32603 32735 1
+R 32782 32902 1
+R 32978 33019 1
+R 33054 33091 1
+R 33798 33851 1
+R 33951 33990 1
+R 34083 34206 1
+R 34341 34378 1
+R 34493 34610 1
+R 38508 38530 1
+R 46287 46292 1
+R 49929 50028 1
+R 50065 50110 1
+R 50141 50156 1
+R 50212 50327 1
+R 50922 50992 1
+R 51043 51114 1
+R 51307 51395 1
+R 52127 52134 1
+R 52191 52204 1
+R 53466 53500 1
+R 53834 53917 1
+R 54117 54156 1
+R 55218 55242 1
+R 56024 56040 1
+R 56377 56389 1
+R 57166 57179 1
+R 57946 57956 1
+R 58082 58099 1
+R 58141 58229 1
+R 59045 59048 1
+R 59380 59402 1
+R 61736 61832 1
+R 61871 61933 1
+R 62194 62226 1
+R 62261 62288 1
+R 62329 62381 1
+R 62450 62476 1
+R 62512 62550 1
+R 62582 62624 1
+R 62651 62681 1
+R 62824 62873 1
+R 63070 63111 1
+R 63152 63180 1
+R 63323 63370 1
+R 65242 65314 1
+R 65346 65388 1
+R 65558 65574 1
+R 65653 65654 1
+R 65761 65828 1
+R 65904 65914 1
+R 65954 66133 1
+R 66217 66261 1
+R 66328 66382 1
+R 66777 66809 1
+R 70656 70745 1
+R 70843 70844 1
+R 71175 71177 1
+R 72857 72898 1
+R 74101 74103 1
+R 75389 75397 1
+R 75422 75443 1
+R 75721 75761 1
+R 78239 78280 1
+R 81159 81189 1
+R 82738 82754 1
+R 82858 82898 1
+R 84781 84808 1
+R 89907 89949 1
+R 90091 90139 1
+R 90210 90236 1
+R 90533 90574 1
+R 91340 91406 1
+R 91452 91502 1
+R 91539 91628 1
+R 91692 91708 1
+R 91739 91751 1
+R 92203 92258 1
+R 92305 92360 1
+R 93046 93076 1
+R 93094 93129 1
+R 93155 93171 1
+R 93273 93334 1
+R 94057 94106 1
+R 94460 94492 1
+R 94524 94654 1
+R 95052 95071 1
+R 95160 95201 1
+R 95918 95989 1
+R 96030 96099 1
+R 96338 96371 1
+R 96403 96565 1
+R 99964 99994 1
+R 107419 107516 1
+R 107564 107655 1
+R 107717 107755 1
+R 108462 108474 1
+R 108506 108544 1
+R 110144 110172 1
+R 116886 116933 1
+R 116976 117024 1
+R 118426 118492 1
+R 118530 118601 1
+R 120333 120439 1
+R 120571 120718 1
+R 120774 120798 1
+R 120830 120961 1
+R 122367 122457 1
+R 122493 122510 1
+R 123660 123706 1
+R 124541 124583 1
+R 124664 124703 1
+R 124757 124757 1
+R 125284 125319 1
+R 126127 126128 1
+R 126785 126829 1
+R 126985 126987 1
+R 128322 128344 1
+R 129612 129634 1
+R 129745 129757 1
+R 130176 130284 1
+R 131296 131311 1
+R 131376 131390 1
+R 131480 131511 1
+R 132778 132802 1
+R 132955 133009 1
+R 133745 133806 1
+R 134104 134135 1
+R 134212 134212 1
+R 134331 134368 1
+R 136106 136110 1
+R 136179 136179 1
+R 136536 136556 1
+R 137235 137271 1
+R 137442 137444 1
+R 137602 137602 1
+R 138563 138569 1
+R 147009 147073 1
+R 147202 147251 1
+R 148492 148543 1
+R 148677 148720 1
+R 148997 149025 1
+R 149825 149842 1
+R 150119 150121 1
+R 150156 150176 1
+R 151463 151489 1
+R 151538 151607 1
+R 151657 151657 1
+R 151978 152005 1
+R 152360 152397 1
+R 153388 153406 1
+R 153430 153490 1
+R 153602 153647 1
+R 156154 156168 1
+R 158159 158179 1
+R 158249 158276 1
+R 158328 158378 1
+R 158462 158467 1
+R 158816 158876 1
+R 158908 159211 1
+R 159361 159429 1
+R 159759 159861 1
+R 160068 160083 1
+R 160144 160171 1
+R 160203 160221 1
+R 160408 160438 1
+R 161848 161884 1
+R 162144 162168 1
+R 162870 162893 1
+R 162952 163006 1
+R 163061 163070 1
+R 163158 163159 1
+R 164117 164156 1
+R 164227 164328 1
+R 164367 164394 1
+R 164644 164710 1
+R 165072 165230 1
+R 165465 165476 1
+R 165500 165530 1
+R 165586 165638 1
+R 165727 165847 1
+R 166278 166382 1
+R 166506 166592 1
+R 166713 166806 1
+R 166869 166959 1
+R 167013 167199 1
+R 167598 167632 1
+R 167781 167903 1
+R 168799 168956 1
+R 169030 169121 1
+R 169151 169228 1
+R 169285 169341 1
+R 169469 169485 1
+R 169598 169624 1
+R 169904 169907 1
+R 169981 170024 1
+R 170065 170096 1
+R 170207 170302 1
+R 170491 170505 1
+R 171071 171088 1
+R 172093 172119 1
+R 172287 172303 1
+R 173708 173775 1
+R 174722 174758 1
+R 175976 176002 1
+R 176890 176919 1
+R 177078 177140 1
+R 177206 177251 1
+R 177533 177558 1
+R 177692 177755 1
+R 178162 178166 1
+R 178219 178332 1
+R 178470 178490 1
+R 179478 179488 1
+R 179808 179855 1
+R 180087 180186 1
+R 180671 180779 1
+R 181091 181143 1
+R 181682 181692 1
+R 182191 182339 1
+R 182970 182990 1
+R 183015 183041 1
+R 184211 184249 1
+R 184352 184373 1
+R 184434 184462 1
+R 184568 184647 1
+R 184684 184795 1
+R 184842 184878 1
+R 184975 185071 1
+R 185107 185180 1
+R 185252 185357 1
+R 185521 185637 1
+R 186087 186174 1
+R 186495 186521 1
+R 186635 186668 1
+R 186738 186762 1
+R 186892 186928 1
+R 187212 187212 1
+R 187590 187590 1
+R 187646 187672 1
+R 187717 187778 1
+R 188031 188068 1
+R 189474 189503 1
+R 189617 189649 1
+R 190766 190831 1
+R 191314 191346 1
+R 191877 191910 1
+R 192864 192890 1
+R 192928 192991 1
+R 193242 193281 1
+R 193365 193385 1
+R 193469 193494 1
+R 193593 193609 1
+R 194698 194729 1
+R 194800 194833 1
+R 194901 194921 1
+R 194965 195005 1
+R 195051 195092 1
+R 195121 195242 1
+R 195402 195450 1
+R 195582 195882 1
+R 195917 196271 1
+R 196318 196357 1
+R 196396 196432 1
+R 196618 196698 1
+R 196738 196783 1
+R 196823 196967 1
+R 196998 197059 1
+R 197103 197154 1
+R 197203 197502 1
+R 197564 197601 1
+R 197648 197810 1
+R 197913 197978 1
+R 198087 198138 1
+R 198201 198436 1
+R 198513 198581 1
+R 198689 198740 1
+R 198776 198805 1
+R 198862 198942 1
+R 199003 199075 1
+R 199163 199277 1
+R 199436 199568 1
+R 199982 199996 1
+R 200042 200082 1
+R 200136 200153 1
+R 200202 200288 1
+R 200966 201108 1
+R 201195 201313 1
+R 201406 201420 1
+R 201456 201549 1
+R 201753 201803 1
+R 201883 201937 1
+R 202016 202062 1
+R 202124 202260 1
+R 202324 202432 1
+R 202670 202673 1
+R 202807 203144 1
+R 203314 203389 1
+R 203454 203493 1
+R 203540 203573 1
+R 203756 204194 1
+R 205865 205876 1
+R 211585 211740 1
