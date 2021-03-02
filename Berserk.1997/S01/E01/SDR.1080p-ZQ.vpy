@@ -9,8 +9,8 @@ from math import sqrt
 
 core = vs.core
 core.max_cache_size = 1024
-  
-card_start, card_end = 14136, 14243
+
+card1, card2 = (3456, 3549), (14136, 14243)
 
 jpn = core.lsmas.LWLibavSource(r'Berserk/E01/00000_JPN.m2ts')
 jpn = core.std.Crop(jpn, left=240, right=240)
@@ -25,17 +25,18 @@ cnr = rekt_fast(cnr, lambda x: core.fxb.FillBorders(x, top=1), right=1438)
 cnr = rekt_fast(cnr, lambda x: core.fxb.FillBorders(x, left=1), top=1078)
 cnr = rekt_fast(cnr, lambda x: core.fxb.FillBorders(x, right=1), top=1078)
 
-aa_1 = taa.TAAmbk(cnr, 1, 1, 1, mtype=1)
-aa_1 = havsfunc.HQDeringmod(aa_1, mrad=10)
-aa_1 = awsmfunc.rfs(cnr, aa_1, "[3456 3549]")
+card = havsfunc.DeHalo_alpha(cnr, darkstr=1.5, rx=2.7, ry=1.5, brightstr=0)
+card = havsfunc.HQDeringmod(card, mrad=3, mthr=100, nrmode=1, thr=50, show=False)
+card = taa.TAAmbk(card, 6, 0, 0)
+card = lvsfunc.rfs(cnr, card, ranges=[card1])
 
-b32 = vsutil.depth(aa_1, 32)
+b32 = vsutil.depth(card, 32)
 lineart = core.placebo.Resample(b32, width=960, height=720, filter='ewa_robidouxsharp', param1=6./(13.+7.*sqrt(2.)), param2=7./(2.+12.*sqrt(2.)))
-halos = lvsfunc.mask.halo_mask(aa_1, rad=1, thmi=25).resize.Bicubic(width=960, height=720, format=vs.GRAYS, filter_param_a=0, filter_param_b=0)
+halos = lvsfunc.mask.halo_mask(card, rad=1, thmi=25).resize.Bicubic(width=960, height=720, format=vs.GRAYS, filter_param_a=0, filter_param_b=0)
 background = core.placebo.Resample(b32, width=960, height=720, filter='haasnsoft', blur=1.025)
 merge = core.std.MaskedMerge(background, lineart, halos)
 
 card = core.placebo.Resample(merge, width=960, height=720, filter='gaussian', blur=1.3)
-card = lvsfunc.rfs(merge, card, ranges=[(card_start, card_end)])
+card = lvsfunc.rfs(merge, card, ranges=[card1, card2])
 
 out = vsutil.depth(card, 8).set_output()
