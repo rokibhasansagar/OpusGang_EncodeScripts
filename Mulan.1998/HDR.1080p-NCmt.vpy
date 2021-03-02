@@ -21,18 +21,20 @@ src_path = Path("Mulan.1998.UHD.BluRay.2160p.TrueHD.Atmos.7.1.HEVC.REMUX-FraMeST
 src = core.ffms2.Source(src_path)
 
 src = vsutil.depth(src, 16)
-src = src.std.Crop(left = 120, right = 120, top = 0, bottom = 0)
 
+src = src.std.Crop(left = 120, right = 120, top = 0, bottom = 0)
 src = dysfunctional.ssimdown(src, preset=1080)
 
 if filter:
-    src = vsutil.depth(src, 16)
-    mask = awf.bandmask(src, thr=150)
+    mask = dysfunctional.FDOG(src, div=2, sigma=1.0)
+    #mask = awf.bandmask(src, thr=150)
 
-    debanded = core.neo_f3kdb.Deband(src, y=48, cb=48, cr=48, grainy=10, grainc=10, dynamic_grain=True, range=30, output_depth=16)
+    debanded = core.neo_f3kdb.Deband(src, y=40, cb=40, cr=40, grainy=10, grainc=10, dynamic_grain=True, range=20, output_depth=16)
+    debanded = adptvgrnMod(debanded, strength=0.40, size=0.60, sharp=50, static=False, luma_scaling=80, grain_chroma=False, grainer=None, show_mask=False)
 
-    src = core.std.MaskedMerge(src, debanded, mask)
+    src = core.std.MaskedMerge(debanded, src, mask)
     src = havsfunc.FineDehalo(src, contra=2.0, thmi=50, thma=85, thlimi=40, thlima=80, darkstr=0.40)
+    src = havsfunc.HQDeringmod(src, mthr=35, thr=10.0, darkthr=10.0/6.0)
 
 src = vsutil.depth(src, 10, dither_type='error_diffusion')
 
