@@ -52,7 +52,6 @@ scene_2 = core.std.MaskedMerge(cnr, scene_2, msk_2)
 scene_2 = lvsfunc.rfs(scene_1, scene_2, ranges=[text_2])
 
 scene_3 = havsfunc.DeHalo_alpha(cnr, darkstr=.7)
-scene_3 = havsfunc.HQDeringmod(scene_3, mthr=150, show=False)
 scene_3 = core.std.MaskedMerge(cnr, scene_3, msk_3)
 scene_3 = lvsfunc.rfs(scene_2, scene_3, ranges=[text_3])
 
@@ -61,6 +60,7 @@ scene_4 = core.std.MaskedMerge(cnr, scene_4, msk_4)
 scene_4 = lvsfunc.rfs(scene_3, scene_4, ranges=[text_4, text_5])
 
 haha_dering_go_brrr = havsfunc.HQDeringmod(scene_4)
+haha_dering_go_brrr = lvsfunc.rfs(haha_dering_go_brrr, scene_1, ranges=[text_1])
 
 b32 = vsutil.depth(haha_dering_go_brrr, 32)
 lineart = core.placebo.Resample(b32, width=960, height=720, filter='ewa_robidouxsharp', param1=6./(13.+7.*sqrt(2.)), param2=7./(2.+12.*sqrt(2.)))
@@ -68,4 +68,4 @@ background = core.placebo.Resample(b32, width=960, height=720, filter='haasnsoft
 halos = lvsfunc.mask.halo_mask(haha_dering_go_brrr, rad=1, thmi=25).resize.Bicubic(width=960, height=720, format=vs.GRAYS, filter_param_a=0, filter_param_b=0)
 merge = core.std.MaskedMerge(background, lineart, halos)
 
-out = vsutil.depth(merge, 8).set_output()
+out = vsutil.depth(merge, 16, dither_type='none').set_output()
