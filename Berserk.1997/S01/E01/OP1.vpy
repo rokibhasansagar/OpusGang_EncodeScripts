@@ -5,15 +5,17 @@ import havsfunc
 import vsTAAmbk as taa
 import lvsfunc
 
-from math import sqrt
 from rekt import rektlvls, rekt_fast
+from adptvgrnMod import *
 
 core = vs.core
 core.max_cache_size = 1024
 
 text_1, text_2, text_3, text_4, text_5, text_6 = (73, 280), (475, 584), (589, 667), (679, 1069), (1358, 1575), (1576, 1678)
+transistion_1 = (463, 470)
+deband_1 = (326, 471)
 
-jpn = core.lsmas.LWLibavSource(r'Berserk/E01/00000_JPN.m2ts')[1776:3455]
+jpn = core.lsmas.LWLibavSource(r'00000_JPN.m2ts')[1776:3455]
 jpn = core.std.Crop(jpn, left=240, right=240)
 jpn = vsutil.depth(jpn, 16)
 
@@ -29,30 +31,30 @@ cnr = rekt_fast(cnr, lambda x: core.fxb.FillBorders(x, right=1), top=1078)
 y = vsutil.get_y(cnr)
 msk_1 = core.tcanny.TCanny(y, sigma=1, t_h=115.0, t_l=50.0, op=1)
 msk_1 = vsutil.iterate(msk_1, lambda x: core.std.Maximum(x), 7)
+msk_1 = core.std.FreezeFrames(msk_1, [137, 273], [154, 281], [136, 268])
 
 msk_2 = core.tcanny.TCanny(y, sigma=0, t_h=115.0, t_l=50.0, op=1)
 msk_2 = vsutil.iterate(msk_2, lambda x: core.std.Maximum(x), 8)
+msk_2 = core.std.FreezeFrames(msk_2, [591, 657], [596, 669], [600, 600])
 
-msk_3 = lvsfunc.mask.halo_mask(jpn, rad=1, thmi=70, thma=25)
-msk_3 = vsutil.iterate(msk_3, lambda x: core.std.Maximum(x), 5)
-
-msk_4 = core.tcanny.TCanny(y, sigma=1, t_h=65.0, t_l=40.0, op=0)
-brize = core.std.Binarize(y, 65 << 8).std.Invert()
-brize = vsutil.iterate(brize, lambda x: core.std.Maximum(x), 3)
-msk_4 = core.std.Expr([msk_4, brize], 'x y -')
-msk_4 = vsutil.iterate(msk_4, lambda x: core.std.Maximum(x), 15)
-
-msk_5 = core.tcanny.TCanny(y, sigma=1, t_h=65.0, t_l=40.0, op=0)
+msk_3 = core.tcanny.TCanny(y, sigma=1, t_h=65.0, t_l=40.0, op=0)
 brize = core.std.Binarize(y, 95 << 8).std.Invert()
 brize = vsutil.iterate(brize, lambda x: core.std.Maximum(x), 4)
-msk_5 = core.std.Expr([msk_5, brize], 'x y -')
-msk_5 = vsutil.iterate(msk_5, lambda x: core.std.Maximum(x), 15)
+msk_3 = core.std.Expr([msk_3, brize], 'x y -')
+msk_3 = vsutil.iterate(msk_3, lambda x: core.std.Maximum(x), 15)
+msk_3 = core.std.FreezeFrames(msk_3, 
+    [676, 723, 734, 825, 859, 931, 965, 1034, 1359, 1428, 1456, 1526], 
+    [687, 731, 744, 828, 867, 939, 981, 1046, 1368, 1438, 1464, 1535], 
+    [700, 700, 773, 773, 879, 879, 981, 981, 1375, 1375, 1468, 1468])
 
-msk_6 = core.tcanny.TCanny(y, sigma=1, t_h=65.0, t_l=40.0, op=0)
+msk_4 = core.tcanny.TCanny(y, sigma=1, t_h=65.0, t_l=40.0, op=0)
 brize = core.std.Binarize(y, 108 << 8).std.Invert()
 brize = vsutil.iterate(brize, lambda x: core.std.Maximum(x), 4)
-msk_6 = core.std.Expr([msk_6, brize], 'x y -')
-msk_6 = vsutil.iterate(msk_6, lambda x: core.std.Maximum(x), 13)
+msk_4 = core.std.Expr([msk_4, brize], 'x y -')
+msk_4 = vsutil.iterate(msk_4, lambda x: core.std.Maximum(x), 13)
+msk_4 = core.std.FreezeFrames(msk_4, [1577], [1678], [1616])
+
+halos = havsfunc.DeHalo_alpha(cnr)
 
 scene_1 = havsfunc.DeHalo_alpha(cnr, darkstr=.7, rx=1, ry=1.5, brightstr=1)
 scene_1 = havsfunc.HQDeringmod(scene_1, mrad=3, mthr=100, nrmode=1, thr=25, show=False)
@@ -65,21 +67,30 @@ scene_2 = core.std.MaskedMerge(cnr, scene_2, msk_2)
 scene_2 = lvsfunc.rfs(scene_1, scene_2, ranges=[text_2])
 
 scene_3 = havsfunc.DeHalo_alpha(cnr, darkstr=.7)
-scene_3 = core.std.MaskedMerge(cnr, scene_3, msk_3)
+scene_3 = core.std.MaskedMerge(cnr, scene_3, msk_2)
 scene_3 = lvsfunc.rfs(scene_2, scene_3, ranges=[text_3])
 
-halos = havsfunc.DeHalo_alpha(cnr)
-
-scene_4 = core.std.MaskedMerge(cnr, halos, msk_4)
+scene_4 = core.std.MaskedMerge(cnr, halos, msk_3)
 scene_4 = lvsfunc.rfs(scene_3, scene_4, ranges=[text_4])
 
-scene_5 = core.std.MaskedMerge(cnr, halos, msk_5)
+scene_5 = core.std.MaskedMerge(cnr, halos, msk_3)
 scene_5 = lvsfunc.rfs(scene_4, scene_5, ranges=[text_5])
 
-scene_6 = core.std.MaskedMerge(cnr, halos, msk_6)
+scene_6 = core.std.MaskedMerge(cnr, halos, msk_4)
 scene_6 = lvsfunc.rfs(scene_5, scene_6, ranges=[text_6])
 
-haha_dering_go_brrr = havsfunc.HQDeringmod(scene_6)
-haha_dering_go_brrr = lvsfunc.rfs(haha_dering_go_brrr, scene_1, ranges=[text_1])
+scene_7 = havsfunc.HQDeringmod(scene_6, mrad=4, thr=5, planes=[0,1,2], show=False)
+scene_7 = havsfunc.FineDehalo(scene_7)
+scene_7_aa = lvsfunc.aa.upscaled_sraa(scene_7)
+scene_7 = core.std.MaskedMerge(scene_7, scene_7_aa, core.std.Prewitt(y, 0, 2).std.Maximum())
+scene_7 = lvsfunc.rfs(scene_6, scene_7, ranges=[transistion_1])
 
-out = vsutil.depth(haha_dering_go_brrr, 16, dither_type='none').set_output()
+ringing = havsfunc.HQDeringmod(scene_7)
+ringing = lvsfunc.rfs(ringing, scene_7, ranges=[text_1, text_3, transistion_1])
+
+dbn = core.f3kdb.Deband(ringing, preset='nograin')
+dbn = adptvgrnMod(dbn, size=1.4, strength=2, luma_scaling=.15, show_mask=False)
+dbn = core.std.MaskedMerge(dbn, ringing, core.std.Sobel(cnr, 0, 2))
+dbn = lvsfunc.rfs(ringing, dbn, ranges=[deband_1])
+
+out = vsutil.depth(dbn, 16, dither_type='none').set_output()
