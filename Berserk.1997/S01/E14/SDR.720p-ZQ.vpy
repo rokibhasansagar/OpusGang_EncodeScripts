@@ -55,12 +55,8 @@ Cb = core.placebo.Resample(plane[1], 480, 360, filter='ewa_robidoux', linearize=
 Cr = core.placebo.Resample(plane[2], 480, 360, filter='ewa_robidoux', linearize=False, sigmoidize=False, sx=-0.125)
 
 merge = vsutil.join([edges, Cb, Cr])
-#chroma = havsfunc.SMDegrain(merge, plane=3, thSADC=300)
-#merge = chroma#core.std.MaskedMerge(chroma, merge, msk_1)
 
 card = core.placebo.Resample(merge, width=960, height=720, filter='gaussian', blur=1.3)
 card = lvsfunc.rfs(merge, card, ranges=[card_2, card_3])
 
 out = vsutil.depth(card, 8).set_output()
-#jpn.set_output(0)
-#splice.set_output(1)

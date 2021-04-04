@@ -47,7 +47,6 @@ msk_2 = FDOG(pre, sigma=1, div=2)
 msk_2 = vsutil.iterate(msk_2, lambda x: core.std.Inflate(x), 2)
 
 dnr = havsfunc.SMDegrain(Y, plane=0, RefineMotion=True, thSAD=115)
-#dnr = Y
 adptv = core.std.MaskedMerge(Y, dnr, msk_1)
 edges = core.std.MaskedMerge(adptv, Y, msk_2)
 
@@ -60,5 +59,3 @@ card = core.placebo.Resample(merge, width=960, height=720, filter='gaussian', bl
 card = lvsfunc.rfs(merge, card, ranges=[card_2, card_3])
 
 out = vsutil.depth(card, 8).set_output()
-#jpn.set_output(0)
-#splice.set_output(1)

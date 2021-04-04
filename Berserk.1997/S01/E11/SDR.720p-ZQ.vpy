@@ -60,5 +60,3 @@ card = core.placebo.Resample(merge, width=960, height=720, filter='gaussian', bl
 card = lvsfunc.rfs(merge, card, ranges=[card_2, card_3])
 
 out = vsutil.depth(merge, 8).set_output()
-#jpn.set_output(0)
-#splice.set_output(1)

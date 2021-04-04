@@ -59,6 +59,3 @@ card = core.placebo.Resample(merge, width=960, height=720, filter='gaussian', bl
 card = lvsfunc.rfs(merge, card, ranges=[card_2, card_3])
 
 out = vsutil.depth(card, 8).set_output()
-#core.std.Prewitt(awsmfunc.bbmod(core.bilateral.Bilateral(vsutil.get_y(jpn), sigmaS=1), left=2, right=2, top=2, bottom=2)).set_output()
-#jpn.set_output(0)
-#splice.set_output(1)
