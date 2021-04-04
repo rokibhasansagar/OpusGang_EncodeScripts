@@ -11,11 +11,11 @@ from adptvgrnMod import *
 core = vs.core
 core.max_cache_size = 1024
 
-text_1, text_2, text_3, text_4, text_5, text_6 = (73, 280), (475, 584), (589, 667), (679, 1069), (1358, 1575), (1576, 1678)
+text_1, text_2, text_3, text_4, text_5, text_6 = (73, 280), (475, 584), (589, 667), (679, 1069), (1358, 1575), (1576, 1679)
 transistion_1 = (463, 470)
 deband_1 = (326, 471)
 
-jpn = core.lsmas.LWLibavSource(r'00000_JPN.m2ts')[1776:3455]
+jpn = core.lsmas.LWLibavSource('00000.m2ts')[1776:3456]
 jpn = core.std.Crop(jpn, left=240, right=240)
 jpn = vsutil.depth(jpn, 16)
 
