@@ -22,10 +22,9 @@ src_path = Path("Wonder.Woman.1984.2020.UHD.BluRay.2160p.TrueHD.Atmos.7.1.DV.HEV
 src = core.ffms2.Source(src_path)
 
 src = vsutil.depth(src, 16)
+src = src.std.Crop(top=66, bottom=66)
 
 if filter:
-    src = src.std.Crop(top=66, bottom=66)
-
     imax = awf.fb(src, top=1, bottom=1)
     imax = awf.bbmod(imax, top=2, bottom=2)
     imax = dysf.ssimdown(imax, preset = 1080)
