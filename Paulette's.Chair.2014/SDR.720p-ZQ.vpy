@@ -5,6 +5,8 @@ import lvsfunc
 from muvsfunc import firniture
 from awsmfunc import bbmod
 from rekt import rekt_fast
+from havsfunc import FineDehalo
+from dysfunctional import coolgrain
 
 core = vs.core
 
@@ -29,11 +31,19 @@ def dehalo(clip: vs.VideoNode, mask: list = [16, 235, 2], blur: float = 1.3, sho
         return mask
     else: return core.std.ShufflePlanes([dehalo, clip], [0,1,2], vs.YUV)
 
-edges = lvsfunc.rfs(bbmod(b16, top=2, bottom=2, left=2, right=2, planes=[0], blur=999), bbmod(b16, top=4, bottom=4, left=4, right=6, planes=[0,1,2], blur=45), ranges=[(1635, 1694)])
+edges_1 = lvsfunc.rfs(bbmod(b16, top=2, bottom=2, left=2, right=2, planes=[0], blur=999), bbmod(b16, top=4, bottom=4, left=4, right=6, planes=[0,1,2], blur=45), ranges=[(1635, 1694)])
+edges_2 = lvsfunc.rfs(edges_1, bbmod(b16, top=2, bottom=2, left=8, right=8, planes=[0,1,2], blur=20), ranges=[(2757, 2903)])
 
-ew = rekt_fast(edges, lambda x: dehalo(x, mask=[16, 144, 2], blur=1.5, show_mask=False), left=edges.width - 300)
-ew = lvsfunc.rfs(edges, ew, ranges=[(2404, 2404)])
+halos_1 = rekt_fast(edges_2, lambda x: dehalo(x, mask=[16, 144, 2], blur=1.5, show_mask=False), left=source.width - 300)
+halos_1 = lvsfunc.rfs(edges_2, halos_1, ranges=[(2367, 2404)])
 
-down = firniture(ew, 1280, 720, kernel='binomial5', sigmoid=True, gamma=True)
+halos_2 = lvsfunc.rfs(halos_1, FineDehalo(halos_1, brightstr=0), ranges=[(2615, 2712)])
 
-vsutil.depth(down, 8).set_output()
+down = firniture(halos_2, width=1280, height=720, kernel='binomial5', sigmoid=True, gamma=True)
+
+deband = core.f3kdb.Deband(down, preset='low/nograin')
+deband = core.std.MaskedMerge(deband, down, core.std.Prewitt(down, 0, 5).std.Maximum())
+deband = lvsfunc.rfs(down, deband, ranges=[(2890, 2926)])
+
+grain = coolgrain(deband, strength=[1,.5], luma_scaling=14)
+vsutil.depth(grain, 8).set_output()
