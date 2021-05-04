@@ -1,9 +1,7 @@
 import awsmfunc
-from toolz.functoolz import has_varargs
 import vapoursynth as vs
 import vsutil
 import lvsfunc
-import zzfunc
 
 from muvsfunc import firniture
 from awsmfunc import bbmod
@@ -41,7 +39,7 @@ edges_2 = lvsfunc.rfs(edges_1, bbmod(b16, top=2, bottom=2, left=8, right=8, plan
 
 halos_1 = rekt_fast(edges_2, lambda x: dehalo(x, mask=[16, 144, 2], blur=1.5, show_mask=False), left=source.width - 300)
 halos_1 = lvsfunc.rfs(edges_2, halos_1, ranges=[(2367, 2404)])
-halos_2 = lvsfunc.rfs(halos_1, FineDehalo(halos_1, brightstr=0, rx=2), ranges=[(2615, 2712), (4815, 4881)])
+halos_2 = lvsfunc.rfs(halos_1, FineDehalo(halos_1, brightstr=0, rx=2), ranges=[(2615, 2712), (4704, 4881)])
 halos_3 = lvsfunc.rfs(halos_2, SuperToon(dehalo(b16, mask=[20, 235, 1], show_mask=False, brz=1.0, thmi=0, thma=110), power=.2), ranges=[(144, 215)])
 
 aa_msk_pre = core.std.Limiter(halos_3, min=50 << 8, max=200 << 8)
@@ -50,17 +48,19 @@ aa_mask = vsutil.iterate(aa_mask, partial(core.std.Maximum), 3)
 
 # lazy
 aa = core.std.MaskedMerge(halos_3, lvsfunc.aa.upscaled_sraa(halos_3, rfactor=1.4), aa_mask)
-aa = lvsfunc.rfs(halos_3, aa, ranges=[(28, 106), (2757, 2903), (3133, 3197), (3277, 3547), (4163, 4198), (4297, 4364), (4479, 4516), (4537, 4704), (4815, 5020)])
+aa = lvsfunc.rfs(halos_3, aa, ranges=[(28, 106), (2757, 2903), (3133, 3197), (3277, 3547), (4297, 4364), (4479, 4516), (4537, 4704), (4787, 5020)])
 
 down = lvsfunc.rfs(firniture(aa, width=1280, height=720, kernel='binomial5', sigmoid=True, gamma=True), firniture(b16, width=1280, height=720, kernel='noalias4', sigmoid=True, gamma=True), ranges=[(5040, 5189)])
 
 deband = core.f3kdb.Deband(down, preset='low/nograin')
 deband = core.std.MaskedMerge(deband, down, core.std.Prewitt(down, 0, 5).std.Maximum())
-deband = lvsfunc.rfs(down, deband, ranges=[(2890, 2926)])
+deband = lvsfunc.rfs(down, deband, ranges=[(1484, 1514), (2890, 2926)])
 
 #grain = coolgrain(deband, strength=[1,.5], luma_scaling=14)
-grain = adptvgrnMod(deband, strength=.3, luma_scaling=14, seed=444, static=True)
+grain = adptvgrnMod(deband, strength=.25, luma_scaling=14, seed=444, static=True)
 vsutil.depth(grain, 8, dither_type='error_diffusion').set_output()
 
 # fades
-# 1464,1526,crf=8/2853,2985,crf=8
+# --zones 216,229,crf=7/1464,1515,crf=8/2853,2985,crf=8/3557,3602,crf=8
+
+
