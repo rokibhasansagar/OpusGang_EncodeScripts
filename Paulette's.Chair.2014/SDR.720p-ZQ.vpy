@@ -19,7 +19,6 @@ b16 = vsutil.depth(source, 16)
 def dehalo(clip: vs.VideoNode, mask: list = [16, 235, 2], blur: float = 1.3, show_mask: bool = False, **kwargs) -> vs.VideoNode:
     # Saw this and thought it was interesting
     # https://github.com/LightArrowsEXE/Encoding-Projects/blob/c1b2d56e2de4ef1fd4cb2e8f7c26deea8bfa7cd5/Miscellaneous%20groups/%5BFoxtrot%5D/Work%20in%20Progress/GREAT%20PRETENDER%20%5BBD%5D/GPBD_01.vpy#L69
-    #Any, rad: int = 2, sigma: float = 1, brz: float = 0.35, thmi: int = 80, thma: int = 128, thlimi: int = 50, thlima: int = 100
     if isinstance(mask, int): div=[mask, mask, mask]
 
     y = vsutil.get_y(clip)
