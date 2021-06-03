@@ -1,80 +1,35 @@
 import vapoursynth as vs
 import vsutil
-import awsmfunc
-import fvsfunc
-import dysfunctional
-from adptvgrnMod import *
-import mvsfunc
-import havsfunc
 import vardefunc
-import atomchtools
 import lvsfunc
-from rekt import rekt
-import vsTAAmbk as taa
-from kagefunc import kirsch
+import dysfunctional
+
+from nnedi3_rpow2 import * 
+from havsfunc import FineDehalo
+
 core = vs.core
-
-height = 844
-width = vsutil.get_w(height)
-
+    
 OPS, EDS = 3453, 31553
+OP_HALOS = [(3462, 3529), (3585, 3633), (3678, 3725), (3867, 3930), (3983, 4040), (4084, 4150), (4235, 4297), (4334, 4393), (4454, 4515), (4552, 4611), (4665, 4718), (4770, 4841), (4882, 4929), (5038, 5109), (5152, 5217), (5261, 5338), (5375, 5490)]
 
-def shitEdgeCleaner(clip: vs.VideoNode, edgemask, modifier=None, **args) -> vs.VideoNode:
-    from vsutil import iterate
+src = core.lsmas.LWLibavSource()
+src = vsutil.depth(src, 32)
 
-    y = vsutil.get_y(clip)
-    edgem = edgemask(y, **args)
+descale = lvsfunc.scale.descale(src, width=1500, height=844, kernel=lvsfunc.kernels.Bilinear(), upscaler=None)
 
-    if modifier != None:
-        edgem = iterate(edgem, lambda x: core.std.Minimum(x), modifier[0])
-        edgem = iterate(edgem, lambda x: core.std.Maximum(x), modifier[1])
-        edgem = iterate(edgem, lambda x: core.std.Inflate(x), modifier[2])
-        
-    dft = core.dfttest.DFTTest(y, sigma=5, tbsize=1, planes=[0])
+emask = vardefunc.mask.FreyChenG41().get_mask(descale).std.Inflate()
 
-    mrg = core.std.MaskedMerge(y, dft, edgem)
-    return core.std.ShufflePlanes([mrg, clip], [0,1,2], vs.YUV)
+denoise = lvsfunc.util.quick_resample(descale, function=lambda x: dysfunctional.bm3dGPU(x, sigma=2, profile='lc'))
+denoise = core.std.MaskedMerge(denoise, descale, emask)
 
-ntb = core.ffms2.Source(r'Dorohedoro.S01E01.1080p.NF.WEB-DL.DDP2.0.H.264-NTb.mkv')[240:]
-br = core.ffms2.Source(r'[Bakaiser] Dorohedoro - 01 [BD 1920x1080 x264 FLAC].mkv')
+deband = lvsfunc.util.quick_resample(denoise, function=lambda x: vardefunc.deband.dumb3kdb(x, preset='low/nograin'))
+deband = core.std.MaskedMerge(deband, denoise, emask)
+deband = dysfunctional.coolgrain(deband, strength=[3,0], radius=3, luma_scaling=10)
 
-src = core.ffms2.Source(r'00000.m2ts')
-b16 = vsutil.depth(src, 16)
-des = fvsfunc.DescaleAA(b16, w=width, h=height, showmask=False, thr=10)
+upscale = nnedi3_rpow2(deband, rfactor=2, width=1920, height=1080, kernel="spline64", upsizer='nnedi3cl')
+upscale = core.std.ShufflePlanes([upscale, src], [0,1,2], vs.YUV)
 
-y = vsutil.get_y(des)
-msk_1 = dysfunctional.FDOG(des, retinex=True, div=[2,2]).std.Maximum()
-msk_2 = atomchtools.Tp7DebandMask(des)
-msk_3 = core.std.Sobel(y)
-msk_4 = core.std.Binarize(y, 20 << 8)
-msk_4 = vsutil.iterate(msk_4, lambda x: core.std.Minimum(x), 12)
-msk_5 = kirsch(y)
-msk_6 = core.std.Expr([msk_4, msk_5], "x y +").std.Minimum()
+op_halos = lvsfunc.rfs(src, FineDehalo(src, darkstr=0, brightstr=.6, rx=2, ry=3, edgeproc=2, showmask=0), ranges=OP_HALOS)
+merge = core.std.MaskedMerge(upscale, op_halos, lvsfunc.scale.descale_detail_mask(src, upscale, threshold=0.05))
 
-rng = havsfunc.HQDeringmod(des, thr=16)
-hlo = havsfunc.EdgeCleaner(rng, 20)
-mrg = core.std.MaskedMerge(hlo, des, msk_6)
-crd = lvsfunc.rfs(des, mrg, ranges=[(OPS+0, OPS+2157)])
-
-aa_1 = taa.TAAmbk(crd, 4, 0, 0)
-aa_1 = core.std.MaskedMerge(crd, aa_1, msk_4)
-aa_1 = lvsfunc.rfs(crd, aa_1, ranges=[(OPS+414, OPS+2157)])
-# maybe later
-#dbl = shitEdgeCleaner(des, lambda x: dysfunctional.FDOG(x), modifier=[0,3,0])
-
-dns_y = mvsfunc.BM3D(vsutil.get_y(aa_1), sigma=[1,0,0])
-dns_c = core.knlm.KNLMeansCL(aa_1, h=.6, channels='UV')
-dmrg = core.std.ShufflePlanes([dns_y, dns_c], [0,1,2], vs.YUV)
-dns = core.std.MaskedMerge(dmrg, aa_1, msk_1)
-
-dbn = core.f3kdb.Deband(dns, preset='low/nograin', y=35)
-dbn = core.std.MaskedMerge(dbn, dns, msk_2)
-dbn = awsmfunc.rfs(dns, dbn, "[15200 15200]")
-
-grn = adptvgrnMod(dbn, seed=444, strength=.15, luma_scaling=6, static=True)
-
-src.set_output(1)
-des.set_output(2)
-aa_1.set_output(3)
-grn.set_output(4)
-msk_6.set_output(5)
+vsutil.depth(merge, 10).set_output()
