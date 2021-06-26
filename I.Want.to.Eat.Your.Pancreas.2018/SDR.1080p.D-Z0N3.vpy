@@ -70,6 +70,8 @@ def fixchroma(c, msk, luma, u, v):
 u = fixchroma(u, y.std.Prewitt(), get_y(src), u, v)
 v = fixchroma(v, y.std.Prewitt(), get_y(src), u, v)
 
+src = join([y, u, v])
+
 src = depth(src, 10)
 
 src.set_output()
