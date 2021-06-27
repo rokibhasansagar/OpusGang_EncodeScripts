@@ -4,39 +4,63 @@ core = vs.core
 import vsutil
 import vardefunc
 import lvsfunc
+import awsmfunc
 import dysfunctional
 
 from nnedi3_rpow2 import * 
 from havsfunc import FineDehalo, SMDegrain
-from adptvgrnMod import *
 from rekt import rekt_fast
 
-from typing import Optional
+def rescale(clip: vs.VideoNode, width: int = 1280, height: int = 720, 
+            kernel=lvsfunc.kernels.Bilinear(), threshold=0.05, show_mask=False) -> vs.VideoNode:
+    
+    descale = lvsfunc.scale.descale(clip, width=width, height=height, kernel=kernel, upscaler=None, mask=None)
+    
+    upscale = nnedi3_rpow2(descale, rfactor=2, width=1920, height=1080, kernel="spline64", upsizer='nnedi3cl')
+    upscale = core.std.ShufflePlanes([upscale, clip], [0,1,2], vs.YUV)
+    
+    mask = lvsfunc.scale.descale_detail_mask(upscale, core.placebo.Resample(descale, width=clip.width, height=clip.height, 
+                                                                            filter='triangle'), threshold=threshold)
+    
+    if show_mask is True: return mask
+    else: return core.std.MaskedMerge(upscale, clip, mask)
+    
+    
+def SM3D(clip: vs.VideoNode) -> vs.VideoNode:
+    from vsutil import get_y
+    from havsfunc import SMDegrain
+    from lvsfunc.util import quick_resample
+    
+    luma = get_y(clip)
+    ref = quick_resample(luma, lambda d: SMDegrain(d, tr=1, thSAD=115))
+    
+    denoise = core.bm3dcuda_rtc.BM3D(luma, ref, sigma=[3, 0, 0], fast=False, extractor_exp=8, transform_1d_s='DCT', 
+                                     transform_2d_s='DCT', block_step=5, bm_range=9, radius=2, ps_num=2, ps_range=5)
+    denoise = denoise.bm3d.VAggregate(radius=2, sample=1)
+    return core.std.ShufflePlanes([denoise, clip], [0,1,2], vs.YUV)
 
-OPS, OPE, EDS = 3453, 5610, 31553
+# descale mask works just fine for ED
+OPS, OPE = 3453, 5610
 
 src = core.lsmas.LWLibavSource('')
 src = vsutil.depth(src, 32)
 
-descale = lvsfunc.scale.descale(src, width=1500, height=844, kernel=lvsfunc.kernels.Bilinear(), upscaler=None)
+descale = rescale(src, width=1500, height=844, kernel=lvsfunc.kernels.Bilinear())
 
-emask = vardefunc.mask.FreyChenG41().get_mask(descale).std.Inflate()
+emask = vardefunc.mask.FreyChenG41().get_mask(descale, multi=1).std.Inflate()
 
-denoise = dysfunctional.bm3dGPU(descale, ref=lambda x: lvsfunc.util.quick_resample(x, function=lambda m: SMDegrain(m, tr=2, thSAD=115, plane=0)), sigma=2, profile='lc')
+denoise = SM3D(descale)
 denoise = core.std.MaskedMerge(denoise, descale, emask)
 
-deband = lvsfunc.util.quick_resample(denoise, function=lambda x: vardefunc.deband.dumb3kdb(x, threshold=[32,0,0]))
+deband = lvsfunc.util.quick_resample(denoise, function=lambda x: vardefunc.deband.dumb3kdb(x, threshold=[32,24,24]))
 deband = core.std.MaskedMerge(deband, denoise, emask)
-    
-aa = core.std.MaskedMerge(rekt_fast(deband, fun=lambda x: lvsfunc.aa.upscaled_sraa(x), top=deband.height - 600, left=deband.width - 500), deband, emask)
+
+aa = rekt_fast(deband, fun=lambda x: lvsfunc.aa.upscaled_sraa(x, rfactor=1.3), top=deband.height - 850, left=deband.width - 620)
 aa = lvsfunc.rfs(deband, aa, ranges=(13085, 13131))
 
-upscale = nnedi3_rpow2(aa, rfactor=2, width=1920, height=1080, kernel="spline64", upsizer='nnedi3cl')
-upscale = core.std.ShufflePlanes([upscale, src], [0,1,2], vs.YUV)
+grain = dysfunctional.coolgrain(aa, strength=[2,0], radius=2, luma_scaling=16, cutoff=16.5, divby=1.3, filter='robidoux')
 
-chroma = lvsfunc.util.quick_resample(upscale, function=lambda x: vardefunc.deband.dumb3kdb(x, radius=20, threshold=[0,32,32]))
-grain = dysfunctional.coolgrain(chroma, strength=[2,0], radius=2, luma_scaling=16, cutoff=16.5, divby=1.3, filter='robidoux')
-
-op_halos = lvsfunc.rfs(grain, FineDehalo(src, darkstr=0, brightstr=.6, rx=2, ry=3, edgeproc=2, showmask=0), ranges=[(OPS, OPE)])
-merge = core.std.MaskedMerge(grain, op_halos, lvsfunc.scale.descale_detail_mask(src, core.placebo.Resample(descale, width=src.width, height=src.height, filter='triangle'), threshold=0.05).std.Maximum())
-vsutil.depth(merge, 10).set_output()
+opening = core.std.MaskedMerge(grain, src, rescale(src, width=1500, height=844,
+                                                   kernel=lvsfunc.kernels.Bilinear(), show_mask=True, threshold=0.03))
+opening = lvsfunc.rfs(grain, FineDehalo(opening, darkstr=0, brightstr=.6, rx=2, ry=3, edgeproc=2, showmask=0), ranges=[(OPS, OPE)])
+vsutil.depth(opening, 10).set_output()
