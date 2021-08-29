@@ -1,0 +1,18 @@
+{
+    "mode": 3,
+    "active_area": {
+        "crop": true
+    },
+    "duplicate": [
+        {
+            "source": 0,
+            "offset": 0,
+            "length": 16
+        },
+        {
+            "source": 158272,
+            "offset": 158272,
+            "length": 40
+        }
+    ]
+}
