@@ -1,9 +1,11 @@
 import vapoursynth as vs
-core = vs.core
-from vsutil import *
+from vapoursynth import core
+
+from vsutil import depth, get_y
 import awsmfunc as awf
-from rekt import *
-from adptvgrnMod import *
+from rekt import rekt
+from adptvgrnMod import adptvgrnMod
+
 
 def f32kdb(clip, range=15, y=32, cb=0, cr=0, sample_mode=4, dither="none"):
     """
@@ -17,10 +19,10 @@ def f32kdb(clip, range=15, y=32, cb=0, cr=0, sample_mode=4, dither="none"):
     # 16 for sample_mode = 2
     # 32 for rest
     step = 16 if sample_mode == 2 else 32
-    
+
     odepth = max(clip.format.bits_per_sample, 16)
     clip = depth(clip, 16, dither_type="none")
-    
+
     if y % step == cb % step == cr % step == 0:
         return depth(clip.neo_f3kdb.Deband(range, y, cb, cr, 0, 0, sample_mode), odepth, dither_type=dither)
     else:
@@ -38,6 +40,8 @@ def f32kdb(clip, range=15, y=32, cb=0, cr=0, sample_mode=4, dither="none"):
         return depth(core.std.Merge(lo_clip, hi_clip, weight), odepth, dither_type=dither)
 
 
+filter = True
+
 src = core.ffms2.Source("remux.mkv")
 
 # top and bottom have 1px of pretty garbage info
@@ -46,27 +50,31 @@ src = src.std.Crop(top=crop, bottom=crop)
 
 src = depth(src, 16)
 
-src = rekt(src, awf.fb(src, top=1), left=3838, bottom=1630)
-src = rekt(src, awf.fb(src, bottom=1), left=3838, top=1630)
+if filter:
+    src = rekt(src, awf.fb(src, top=1), left=3838, bottom=1630)
+    src = rekt(src, awf.fb(src, bottom=1), left=3838, top=1630)
 
-src = depth(src, 32)
+    src = depth(src, 32)
 
-src = rekt(src, awf.bbmod(src, top=7, right=6, blur=20), left=3810, bottom=1620)
-src = rekt(src, awf.bbmod(src, bottom=7, right=6, blur=20), left=3810, top=1620)
+    src = rekt(src, awf.bbmod(src, top=7, right=6, blur=20), left=3810, bottom=1620)
+    src = rekt(src, awf.bbmod(src, bottom=7, right=6, blur=20), left=3810, top=1620)
 
-# the dirty lines here are very inconsistent and seem more like edges of the film
-# they're way too much work to "fix" even when that's possible so this is just a lazy way to make them less of an eyesore
+    # the dirty lines here are very inconsistent and seem more like edges of the film
+    # they're way too much work to "fix" even when that's possible so this is just a lazy way to make them less of an eyesore
 
-src = awf.bbmod(src, left=6, right=1, blur=999, thresh=30)
+    src = awf.bbmod(src, left=6, right=1, blur=999, thresh=30)
 
-src = awf.zr(src, 1080, kernel='bicubic', top=1, bottom=1, filter_param_a=1/3, filter_param_b=1/3)
+    src = awf.zr(src, 1080, kernel='bicubic', top=1, bottom=1, filter_param_a=1/3, filter_param_b=1/3)
 
-dbn = f32kdb(src, y=26, cb=26, cr=26)
-msk = get_y(src).std.Sobel()
-mrg = core.std.MaskedMerge(dbn, src, msk.std.Binarize(0.015).std.Minimum().std.Maximum().std.Maximum())
-grn = adptvgrnMod(mrg, strength=.1, size=1.8, sharp=70, luma_scaling=5)
-mrg = core.std.MaskedMerge(grn, src, msk.std.Binarize(0.1).std.Maximum())
-src = awf.rfs(src, mrg, "[27859 27900] [50275 50620] [97364 103203] [127223 127252]")
+    dbn = f32kdb(src, y=40, cb=40, cr=40)
+    msk = get_y(src).std.Sobel()
+    mrg = core.std.MaskedMerge(dbn, src, msk.std.Binarize(0.015).std.Minimum().std.Maximum().std.Maximum())
+
+    grn = adptvgrnMod(mrg, strength=.1, size=1.8, sharp=70, luma_scaling=5)
+    mrg = core.std.MaskedMerge(grn, mrg, msk.std.Binarize(0.1).std.Maximum())
+    src = awf.rfs(src, mrg, "[27859 27900] [50275 50620] [97364 103203] [127223 127252]")
+else:
+    src = awf.zr(src, 1080, kernel='bicubic', top=1, bottom=1, filter_param_a=1/3, filter_param_b=1/3)
 
 src = depth(src, 10)
 
