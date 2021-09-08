@@ -40,9 +40,10 @@ def f32kdb(clip, range=15, y=32, cb=0, cr=0, sample_mode=4, dither="none"):
         return depth(core.std.Merge(lo_clip, hi_clip, weight), odepth, dither_type=dither)
 
 
-filter = True
+core.num_threads = 8
+filter = False
 
-src = core.ffms2.Source("remux.mkv")
+src = core.ffms2.Source("Lady.Vengeance.2005.UHD.BluRay.2160p.DTS-HD.MA.5.1.DV.HEVC.REMUX-FraMeSToR.mkv")
 
 # top and bottom have 1px of pretty garbage info
 crop = 264
