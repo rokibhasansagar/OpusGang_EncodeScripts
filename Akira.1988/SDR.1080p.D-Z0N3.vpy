@@ -1,45 +1,93 @@
 import vapoursynth as vs
-core = vs.get_core()
-import fvsfunc as fvf
-import mvsfunc as mvf
-import kagefunc as kgf
-import havsfunc as hvf
-import vsTAAmbk as taa
-import fag3kdb
-import nnedi3_resample as nnrs
-import BalanceBorders
-import sgvsfunc as sgf
-import muvsfunc as muvf
-import blazefunc as bzf
+core = vs.core
+core.max_cache_size = 2048
+from vsutil import *
+import awsmfunc as awf
+import havsfunc as haf
+import lvsfunc as lvf
+from adptvgrnMod import *
 
-src=core.ffms2.Source("")
+def f32kdb(clip, range=15, y=32, cb=0, cr=0, sample_mode=4, dither="none"):
+    """
+    just an easier to read version of vardefunc's dumb3kdb with minor changes:
+    * grain is always 0
+    * changed defaults
+    * clips are merged at 32-bit
+    * you can also just pass a 32-bit clip (Idc if this is slower or something)
+    """
+    from vsutil import depth
+    # 16 for sample_mode = 2
+    # 32 for rest
+    step = 16 if sample_mode == 2 else 32
+    
+    odepth = max(clip.format.bits_per_sample, 16)
+    clip = depth(clip, 16, dither_type="none")
+    
+    if y % step == cb % step == cr % step == 0:
+        return depth(clip.neo_f3kdb.Deband(range, y, cb, cr, 0, 0, sample_mode), odepth)
+    else:
+        loy, locb, locr = [max((th - 1) // step * step + 1, 0) for th in [y, cb, cr]]
+        hiy, hicb, hicr = [min(lo + step, 511) for lo in [loy, locb, locr]]
 
-src=fvf.Depth(src,16)
+        lo_clip = depth(clip.neo_f3kdb.Deband(range, loy, locb, locr, 0, 0, sample_mode), 32)
+        hi_clip = depth(clip.neo_f3kdb.Deband(range, hiy, hicb, hicr, 0, 0, sample_mode), 32)
 
-src=core.std.Crop(src,left=0,right=0,top=24,bottom=24).std.Trim(24,179063)
+        if clip.format.color_family == vs.GRAY:
+            weight = (y - loy) / step
+        else:
+            weight = [(y - loy) / step, (cb - locb) / step, (cr - locr) / step]
 
-#different crop w/ dirty lines 
-crop=core.std.Crop(src,left=46,right=46,top=20,bottom=20)
-crop=core.fb.FillBorders(crop,bottom=1,right=3,top=1,mode="fillmargins").std.Merge(crop,[1,0])
-crop=core.edgefixer.ContinuityFixer(crop,top=4,bottom=3,right=0,left=0,radius=4)
-crop=core.std.AddBorders(crop,left=46,right=46,top=20,bottom=20)
-crop=sgf.FixColumnBrightnessProtect2(crop,48,5)
-crop=sgf.FixColumnBrightnessProtect2(crop,1919-46,42)
-crop=sgf.FixColumnBrightnessProtect2(crop,1919-49,5)
-src=fvf.ReplaceFramesSimple(src,crop,mappings="[173456 179039]")
+        return depth(core.std.Merge(lo_clip, hi_clip, weight), odepth, dither_type=dither)
 
-b16=src
+src = core.ffms2.Source("Akira.1988.30th.Anniversary.Hybrid.1080p.BluRay.Remux.AVC.TrueHD.5.1-EDPH.mkv")
 
-db = b16.f3kdb.Deband(range=15, y=60, cb=60, cr=60, grainy=16, grainc=8, output_depth=16)
-mask = kgf.retinex_edgemask(b16).std.Binarize(10000).std.Inflate().std.Maximum().std.Inflate()
-merged = core.std.MaskedMerge(db, b16, mask)
-sfdb=fvf.ReplaceFramesSimple(b16, merged, mappings="[163790 163892] [163598 163673] [141964 142059]")
+src = src.std.Crop(top=24, bottom=24)
 
-db = b16.f3kdb.Deband(range=20, y=60, cb=60, cr=60, grainy=16, grainc=8, output_depth=16)
-mask = kgf.retinex_edgemask(b16).std.Maximum().std.Inflate()
-merged = core.std.MaskedMerge(db, b16, mask)
-sfdb=fvf.ReplaceFramesSimple(sfdb, merged, mappings="[173456 174109]")
-#break 174030
+src = depth(src, 32)
 
-final=fvf.Depth(sfdb,8)
-final.set_output()
+spl = split(src)
+
+msk = lvf.mask.halo_mask(spl[0], rad=3, brz=.25, thmi=.18, thma=.2, thlimi=.2, thlima=.4).std.Limiter(0, 1)
+
+ydh = haf.DeHalo_alpha(spl[0], rx=2.5, ry=2.5, brightstr=1, darkstr=0)
+
+spl[0] = spl[0].std.MaskedMerge(ydh, msk)
+
+dh = join(spl)
+
+aw = lvf.util.quick_resample(dh, lambda x: x.warp.AWarpSharp2(blur=7, type=0, chroma=0, depth=48, planes=[1, 2]))
+
+msk = spl[0].std.Prewitt().std.BinarizeMask(.5).std.Maximum().std.Maximum()
+msk = core.std.Expr([msk, spl[0]], "y .2 < x 0 ?")
+msk = msk.std.Maximum().std.Deflate()
+msk = core.std.Expr([msk, spl[0]], "y .3 < x 0 ?")
+
+mrg = core.std.MaskedMerge(dh, aw, msk)
+
+src = core.std.Expr([dh, mrg], ["", "y abs x abs - 0 > x y ?"])
+
+dbn = f32kdb(src, 15, 30, 40, 40)
+dbn = adptvgrnMod(dbn, strength=.2, cstrength=.2, size=1.3)
+src = awf.rfs(src, dbn, "[163790 163892] [163598 163673] [141964 142059] [173456 174109]")
+
+v = [46, 46, 20, 18]
+fix = src.std.Crop(v[0], v[1], v[2], v[3])
+fix = awf.bbmod(fix, left=3, top=3, right=4, bottom=5, blur=999)
+fix = fix.std.AddBorders(v[0], v[1], v[2], v[3])
+src = awf.rfs(src, fix, "[173456 173715]")
+
+v[3] += 4
+fix = src.std.Crop(v[0], v[1], v[2], v[3])
+fix = awf.bbmod(fix, left=3, top=3, right=4, bottom=0, blur=999)
+fix = lvf.util.quick_resample(fix, lambda x: x.cf.ContinuityFixer(bottom=4, radius=10))
+fix = fix.std.AddBorders(v[0], v[1], v[2], v[3])
+src = awf.rfs(src, fix, "[173716 173828]")
+
+fix = src.std.Crop(v[0], v[1], v[2], v[3])
+fix = awf.bbmod(fix, left=3, top=3, right=4, bottom=0, blur=999)
+fix = fix.std.AddBorders(v[0], v[1], v[2], v[3])
+src = awf.rfs(src, fix, "[173829 179039]")
+
+src = depth(src, 8)
+
+src.set_output()
