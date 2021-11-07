@@ -39,7 +39,7 @@ def f32kdb(clip, range=15, y=32, cb=0, cr=0, sample_mode=4, dither="none"):
 
         return depth(core.std.Merge(lo_clip, hi_clip, weight), odepth, dither_type=dither)
 
-src = core.ffms2.Source("Akira.1988.30th.Anniversary.Hybrid.1080p.BluRay.Remux.AVC.TrueHD.5.1-EDPH.mkv")
+src = core.lsmas.LWLibavSource("Akira.1988.30th.Anniversary.Hybrid.1080p.BluRay.Remux.AVC.TrueHD.5.1-EDPH.mkv")
 
 src = src.std.Crop(top=24, bottom=24)
 
@@ -55,12 +55,12 @@ spl[0] = spl[0].std.MaskedMerge(ydh, msk)
 
 dh = join(spl)
 
-aw = lvf.util.quick_resample(dh, lambda x: x.warp.AWarpSharp2(blur=7, type=0, chroma=0, depth=48, planes=[1, 2]))
+aw = lvf.util.quick_resample(dh, lambda x: x.warp.AWarpSharp2(blur=17, type=0, chroma=0, depth=32, planes=[1, 2]))
 
 msk = spl[0].std.Prewitt().std.BinarizeMask(.5).std.Maximum().std.Maximum()
-msk = core.std.Expr([msk, spl[0]], "y .2 < x 0 ?")
+msk = core.std.Expr([msk, spl[0]], "y .23 < x 0 ?")
 msk = msk.std.Maximum().std.Deflate()
-msk = core.std.Expr([msk, spl[0]], "y .3 < x 0 ?")
+msk = core.std.Expr([msk, spl[0]], "y .33 < x 0 ?")
 
 mrg = core.std.MaskedMerge(dh, aw, msk)
 
