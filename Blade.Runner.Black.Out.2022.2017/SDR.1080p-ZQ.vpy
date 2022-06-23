@@ -133,9 +133,9 @@ truck_scene = core.std.MaskedMerge(
 truck_scene = adptvgrnMod(
     truck_scene, strength=[1, 0.35], size=1.5,
     static=False, temporal_average=30, luma_scaling=0)
-# didn't want to fix the vars lol
+
 ffd = lvsfunc.rfs(
-    ffd, truck_scene, ranges=[(4775, 4936), (5081, 5324)]
+    ffd, truck_scene, ranges=[(4775, 4936), (5140, 5324)]
 )
 
 deband = debandshit.dumb3kdb(ffd, radius=20, threshold=[35, 50, 50])
@@ -217,7 +217,7 @@ grain = Graigasm(
 
 restore = core.std.Crop(src, top=140, bottom=140)
 restore = awsmfunc.bbmod(
-    restore, top=6, bottom=8, blur=999
+    restore, top=6, bottom=8, blur=999, planes=[0, 1, 2]
     )
 restore = EoEfunc.denoise.CMDegrain(
     restore, tr=2, thSAD=100, freq_merge=False
@@ -226,7 +226,7 @@ restore_noise = lvsfunc.chickendream(
     restore, rad=0.015, dev=0.1, draft=True
     )
 restore = core.std.Merge(restore, restore_noise, 0.7)
-restore = core.std.AddBorders(restore, top=140, bottom=140)
+restore = awsmfunc.AddBordersMod(restore, top=140, bottom=140)
 
 # can you tell this was an afterthought?
 # this should be possible with a loop or two,
@@ -245,3 +245,5 @@ cuts = grain[0:72] + sdr[cuts[0][0]:cuts[0][1]] + grain[91:103] \
 
 out = core.fmtc.bitdepth(cuts, bits=8, dmode=9)
 out.set_output()
+
+
